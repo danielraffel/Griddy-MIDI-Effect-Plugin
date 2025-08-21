@@ -19,7 +19,7 @@ Griddy is an algorithmic drum sequencer that generates evolving drum patterns us
 - **Swing Control**: Apply swing timing to patterns
 - **MIDI Output**: Sends MIDI notes for integration with DAWs and drum machines
 - **LED Matrix Display**: Visual feedback showing current pattern activity
-- **Preset Management**: Save and recall your favorite pattern settings
+- **Modulation**: Built in LFOs to modulate all settings 
 
 ## Requirements
 
@@ -60,8 +60,7 @@ This will configure CMake, generate the Xcode project, and open it automatically
 After building, the plugins will be located in:
 - **AU**: `~/Library/Audio/Plug-Ins/Components/Griddy.component`
 - **VST3**: `~/Library/Audio/Plug-Ins/VST3/Griddy.vst3`
-- **Standalone**: `build/Griddy_artefacts/Debug/Standalone/Griddy.app`
-
+  
 ## Usage
 
 ### Basic Operation
@@ -92,7 +91,7 @@ This project is licensed under the **GNU General Public License v3.0** - see the
 
 ### Important License Information
 
-Griddy incorporates drum patterns and algorithms from [Mutable Instruments Grids](https://github.com/pichenettes/eurorack/tree/master/grids), which is licensed under GPL v3.0. As a result, this entire project must be distributed under GPL v3.0 or later.
+Griddy incorporates drum patterns and algorithms from [Mutable Instruments Grids](https://github.com/pichenettes/eurorack/tree/master/grids), which is licensed under GPL v3.0.
 
 For detailed third-party attributions and licenses, please see <a href="LICENSES.md" target="_blank">LICENSES.md</a>.
 
@@ -107,14 +106,14 @@ Contributions are welcome! Please feel free to submit pull requests.
 5. Open a Pull Request
 
 ## Acknowledgments
-
+Details in 
 - Emilie Gillet (Mutable Instruments) for the original Grids module and algorithm
 - The JUCE team for the excellent cross-platform audio framework
-- The drum pattern dataset used in the original machine learning process
+- Matthew Tytel for the Visage audio framework
 
 ## Support
 
-For issues, questions, or suggestions, please open an issue on GitHub or contact thegenerouscorp@gmail.com
+For issues, questions, or suggestions, please open an issue on GitHub or contact [mailto:thegenerouscorp@gmail.com](thegenerouscorp@gmail.com)
 
 ## Build Status
 
