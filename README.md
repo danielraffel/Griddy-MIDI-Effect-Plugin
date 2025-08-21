@@ -5,10 +5,11 @@ A topographic drum sequencer MIDI Effect plugin (VST3/AU) inspired by Mutable In
 
 <img width="630" height="573" alt="image" src="https://github.com/user-attachments/assets/dc2e8f45-2b1b-4c44-9771-f8c14caad771" />
 
-
 ## Overview
 
 Griddy is an algorithmic drum sequencer that generates evolving drum patterns using machine learning-derived rhythm maps. Navigate through a 5x5 grid of patterns using X/Y controls to morph between different rhythmic styles in real-time.
+
+[![Watch the video](https://img.youtube.com/vi/njBghkxqiM8/0.jpg)](https://youtu.be/njBghkxqiM8)
 
 ### Features
 
