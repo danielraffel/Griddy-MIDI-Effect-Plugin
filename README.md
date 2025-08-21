@@ -1,6 +1,9 @@
 # Griddy
 
-A modern drum sequencer plugin inspired by Mutable Instruments Grids, built with JUCE.
+A modern drum sequencer plugin inspired by Mutable Instruments Grids, built with JUCE and Visage.
+
+<img width="630" height="573" alt="image" src="https://github.com/user-attachments/assets/dc2e8f45-2b1b-4c44-9771-f8c14caad771" />
+
 
 ## Overview
 
