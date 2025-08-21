@@ -109,7 +109,7 @@ Contributions are welcome! Please feel free to submit pull requests.
 Details in 
 - Emilie Gillet (Mutable Instruments) for the original Grids module and algorithm
 - The JUCE team for the excellent cross-platform audio framework
-- Matthew Tytel for the Visage audio framework
+- [Matt Tytel](https://tytel.org) for the Visage UI framework.
 
 ## Support
 
