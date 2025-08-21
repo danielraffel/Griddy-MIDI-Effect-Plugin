@@ -35,8 +35,8 @@ Griddy is an algorithmic drum sequencer that generates evolving drum patterns us
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/griddy.git
-cd griddy
+git clone https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin.git
+cd Griddy-MIDI-Effect-Plugin
 git submodule update --init --recursive
 ```
 
