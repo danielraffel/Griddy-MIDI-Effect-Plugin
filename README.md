@@ -47,7 +47,7 @@ git submodule update --init --recursive
 
 This will configure CMake, generate the Xcode project, and open it automatically.
 
-3. In Xcode, select your target (Standalone, AU, or VST3) and build (+B)
+3. In Xcode, select your target (Standalone, AU, or VST3) and build
 
 ### Build Options
 
