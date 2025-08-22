@@ -118,7 +118,8 @@ For issues, questions, or suggestions, please open an issue on GitHub or contact
 
 ## Build Status
 
-- macOS (Apple Silicon):  Supported
+- macOS (Apple Silicon): ✅ Supported
+- confirmed that other platforms should compile with some minor tweaks to CMAkeLists.txt
 
 ---
 
