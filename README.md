@@ -1,6 +1,6 @@
 # Griddy
 
-A topographic drum sequencer MIDI Effect plugin (VST3/AU) inspired by Mutable Instruments Grids, built in C++ with JUCE and Visage.<br>
+A topographic drum sequencer MIDI Effect plugin (VST3/AU) inspired by Mutable Instruments Grids, built in C++ with JUCE.<br>
 [Signed macOS Apple Silicon Installer](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/tag/1.0.1)
 
 <img width="630" height="573" alt="image" src="https://github.com/user-attachments/assets/dc2e8f45-2b1b-4c44-9771-f8c14caad771" />
@@ -110,7 +110,7 @@ Contributions are welcome! Please feel free to submit pull requests.
 Details in 
 - Emilie Gillet (Mutable Instruments) for the original Grids module and algorithm
 - The JUCE team for the excellent cross-platform audio framework
-- [Matt Tytel](https://tytel.org) for the Visage UI framework.
+- [Matt Tytel](https://tytel.org) for the Visage UI framework (which I am working on integrating correctly)
 
 ## Support
 
