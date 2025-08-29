@@ -1,7 +1,7 @@
 # Griddy
 
 A topographic drum sequencer MIDI Effect plugin (VST3/AU) inspired by Mutable Instruments Grids, built in C++ with JUCE.<br>
-[Signed macOS Apple Silicon Installer](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/tag/1.0.1)
+[💾 Download macOS Apple Silicon Installer](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/1.0.1/Griddy.dmg)
 
 <img width="630" height="573" alt="image" src="https://github.com/user-attachments/assets/dc2e8f45-2b1b-4c44-9771-f8c14caad771" />
 
