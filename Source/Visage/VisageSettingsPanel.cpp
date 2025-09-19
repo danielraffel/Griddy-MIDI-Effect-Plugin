@@ -1293,6 +1293,78 @@ std::unique_ptr<juce::Component> VisageSettingsPanel::createModulationTabContent
             components.rateSlider.setValue(lfo.getRate(), juce::dontSendNotification);
             components.rateDescriptionLabel.setText(getRateDescription(lfo.getRate()), juce::dontSendNotification);
             components.depthSlider.setValue(lfo.getDepth() * 100.0, juce::dontSendNotification);
+
+            // Initialize destination checkboxes from saved routing state
+            // Check each destination to see if it's routed from this LFO
+            auto& routing_x = modMatrix.getRouting(ModulationMatrix::PATTERN_X);
+            components.destPatternX.setToggleState(routing_x.enabled && routing_x.sourceId == (lfoIndex - 1) && routing_x.amount > 0.0f,
+                                                   juce::dontSendNotification);
+
+            auto& routing_y = modMatrix.getRouting(ModulationMatrix::PATTERN_Y);
+            components.destPatternY.setToggleState(routing_y.enabled && routing_y.sourceId == (lfoIndex - 1) && routing_y.amount > 0.0f,
+                                                   juce::dontSendNotification);
+
+            auto& routing_chaos = modMatrix.getRouting(ModulationMatrix::CHAOS);
+            components.destChaos.setToggleState(routing_chaos.enabled && routing_chaos.sourceId == (lfoIndex - 1) && routing_chaos.amount > 0.0f,
+                                                juce::dontSendNotification);
+
+            auto& routing_swing = modMatrix.getRouting(ModulationMatrix::SWING);
+            components.destSwing.setToggleState(routing_swing.enabled && routing_swing.sourceId == (lfoIndex - 1) && routing_swing.amount > 0.0f,
+                                                juce::dontSendNotification);
+
+            auto& routing_reset = modMatrix.getRouting(ModulationMatrix::PATTERN_RESET);
+            components.destReset.setToggleState(routing_reset.enabled && routing_reset.sourceId == (lfoIndex - 1) && routing_reset.amount > 0.0f,
+                                                juce::dontSendNotification);
+
+            // Density destinations
+            auto& routing_bd_dens = modMatrix.getRouting(ModulationMatrix::BD_DENSITY);
+            components.destBDDensity.setToggleState(routing_bd_dens.enabled && routing_bd_dens.sourceId == (lfoIndex - 1) && routing_bd_dens.amount > 0.0f,
+                                                    juce::dontSendNotification);
+
+            auto& routing_sd_dens = modMatrix.getRouting(ModulationMatrix::SD_DENSITY);
+            components.destSDDensity.setToggleState(routing_sd_dens.enabled && routing_sd_dens.sourceId == (lfoIndex - 1) && routing_sd_dens.amount > 0.0f,
+                                                    juce::dontSendNotification);
+
+            auto& routing_hh_dens = modMatrix.getRouting(ModulationMatrix::HH_DENSITY);
+            components.destHHDensity.setToggleState(routing_hh_dens.enabled && routing_hh_dens.sourceId == (lfoIndex - 1) && routing_hh_dens.amount > 0.0f,
+                                                    juce::dontSendNotification);
+
+            // Velocity destinations
+            auto& routing_bd_vel = modMatrix.getRouting(ModulationMatrix::BD_VELOCITY);
+            components.destBDVelocity.setToggleState(routing_bd_vel.enabled && routing_bd_vel.sourceId == (lfoIndex - 1) && routing_bd_vel.amount > 0.0f,
+                                                     juce::dontSendNotification);
+
+            auto& routing_sd_vel = modMatrix.getRouting(ModulationMatrix::SD_VELOCITY);
+            components.destSDVelocity.setToggleState(routing_sd_vel.enabled && routing_sd_vel.sourceId == (lfoIndex - 1) && routing_sd_vel.amount > 0.0f,
+                                                     juce::dontSendNotification);
+
+            auto& routing_hh_vel = modMatrix.getRouting(ModulationMatrix::HH_VELOCITY);
+            components.destHHVelocity.setToggleState(routing_hh_vel.enabled && routing_hh_vel.sourceId == (lfoIndex - 1) && routing_hh_vel.amount > 0.0f,
+                                                     juce::dontSendNotification);
+
+            // MIDI Note destinations
+            auto& routing_bd_note = modMatrix.getRouting(ModulationMatrix::BD_MIDI_NOTE);
+            components.destBDNote.setToggleState(routing_bd_note.enabled && routing_bd_note.sourceId == (lfoIndex - 1) && routing_bd_note.amount > 0.0f,
+                                                 juce::dontSendNotification);
+
+            auto& routing_sd_note = modMatrix.getRouting(ModulationMatrix::SD_MIDI_NOTE);
+            components.destSDNote.setToggleState(routing_sd_note.enabled && routing_sd_note.sourceId == (lfoIndex - 1) && routing_sd_note.amount > 0.0f,
+                                                 juce::dontSendNotification);
+
+            auto& routing_hh_note = modMatrix.getRouting(ModulationMatrix::HH_MIDI_NOTE);
+            components.destHHNote.setToggleState(routing_hh_note.enabled && routing_hh_note.sourceId == (lfoIndex - 1) && routing_hh_note.amount > 0.0f,
+                                                 juce::dontSendNotification);
+
+            // Also restore bipolar mode from first active routing
+            for (int dest = 0; dest < ModulationMatrix::NUM_DESTINATIONS; ++dest)
+            {
+                auto& routing = modMatrix.getRouting(static_cast<ModulationMatrix::Destination>(dest));
+                if (routing.enabled && routing.sourceId == (lfoIndex - 1) && routing.amount > 0.0f)
+                {
+                    components.bipolarBox.setToggleState(routing.bipolar, juce::dontSendNotification);
+                    break; // Use the bipolar setting from the first active routing
+                }
+            }
         }
 #endif
         
