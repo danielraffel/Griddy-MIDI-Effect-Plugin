@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "Visage/GridsPluginEditor.h"
+#include "Settings/SettingsManager.h"
 
 GridsAudioProcessor::GridsAudioProcessor()
      : AudioProcessor (BusesProperties()
@@ -27,7 +28,16 @@ GridsAudioProcessor::~GridsAudioProcessor()
 juce::AudioProcessorValueTreeState::ParameterLayout GridsAudioProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
-    
+
+    // Check if user has custom MIDI note defaults
+    auto& settings = SettingsManager::getInstance();
+    settings.initialise();
+    bool useCustom = settings.getBool(SettingsManager::Keys::useCustomMidiDefaults, false);
+
+    int defaultBDNote = useCustom ? settings.getInt(SettingsManager::Keys::defaultBDNote, 36) : 36;
+    int defaultSDNote = useCustom ? settings.getInt(SettingsManager::Keys::defaultSDNote, 38) : 38;
+    int defaultHHNote = useCustom ? settings.getInt(SettingsManager::Keys::defaultHHNote, 42) : 42;
+
     // Pattern position
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID("x", 1), "Pattern X", 
@@ -87,14 +97,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout GridsAudioProcessor::createP
     
     // MIDI Note assignments - using numeric IDs to force order
     layout.add(std::make_unique<juce::AudioParameterInt>(
-        juce::ParameterID("note_1_bd", 1), "BD Note", 
-        0, 127, 36));
+        juce::ParameterID("note_1_bd", 1), "BD Note",
+        0, 127, defaultBDNote));
     layout.add(std::make_unique<juce::AudioParameterInt>(
-        juce::ParameterID("note_2_sd", 1), "SD Note", 
-        0, 127, 38));
+        juce::ParameterID("note_2_sd", 1), "SD Note",
+        0, 127, defaultSDNote));
     layout.add(std::make_unique<juce::AudioParameterInt>(
-        juce::ParameterID("note_3_hh", 1), "HH Note", 
-        0, 127, 42));
+        juce::ParameterID("note_3_hh", 1), "HH Note",
+        0, 127, defaultHHNote));
     
     return layout;
 }
