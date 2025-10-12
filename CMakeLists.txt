@@ -21,7 +21,7 @@ if(NOT JUCE_REPO)
     set(JUCE_REPO "https://github.com/juce-framework/JUCE.git")
 endif()
 if(NOT JUCE_TAG)
-    set(JUCE_TAG "8.0.8")
+    set(JUCE_TAG "8.0.10")
 endif()
 if(NOT COMPANY_NAME)
     set(COMPANY_NAME "Default Company Name")
@@ -237,4 +237,20 @@ if(TARGET juce_vst3_helper)
     target_compile_features(juce_vst3_helper PRIVATE cxx_std_17)
     # Explicitly set compile options
     target_compile_options(juce_vst3_helper PRIVATE -std=c++17)
+endif()
+
+# Also fix the project-specific VST3 helper target
+if(TARGET ${PROJECT_NAME}_vst3_helper)
+    set_target_properties(${PROJECT_NAME}_vst3_helper PROPERTIES
+        XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-"
+        XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED YES
+        XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++17"
+        XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++"
+    )
+    target_compile_features(${PROJECT_NAME}_vst3_helper PRIVATE cxx_std_17)
+    # Explicitly set compile options
+    target_compile_options(${PROJECT_NAME}_vst3_helper PRIVATE -std=c++17)
 endif()
