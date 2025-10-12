@@ -361,11 +361,21 @@ std::unique_ptr<juce::Component> VisageSettingsPanel::createGeneralTabContent()
             bdNoteLabel.setFont(juce::Font(12.0f));
             bdNoteLabel.setColour(juce::Label::textColourId, juce::Colour(0xffcccccc));
             addAndMakeVisible(bdNoteLabel);
-            
-            setupNoteDropdown(bdNoteBox, 36); // Default C1
+
+            // Read current parameter value from session
+            int currentBDNote = static_cast<int>(*audioProcessor.parameters.getRawParameterValue("note_1_bd"));
+            setupNoteDropdown(bdNoteBox, currentBDNote);
             bdNoteBox.onChange = [this] {
                 int noteNum = bdNoteBox.getSelectedId() - 1;
-                SettingsManager::getInstance().setInt("defaultBDNote", noteNum);
+                // Update the current session's parameter
+                if (auto* param = audioProcessor.parameters.getParameter("note_1_bd")) {
+                    float normalized = noteNum / 127.0f;
+                    param->setValueNotifyingHost(normalized);
+                }
+                // If "Save as default" is checked, also save to global settings
+                if (saveAsDefaultBox.getToggleState()) {
+                    SettingsManager::getInstance().setInt(SettingsManager::Keys::defaultBDNote, noteNum);
+                }
             };
             addAndMakeVisible(bdNoteBox);
             
@@ -374,11 +384,21 @@ std::unique_ptr<juce::Component> VisageSettingsPanel::createGeneralTabContent()
             sdNoteLabel.setFont(juce::Font(12.0f));
             sdNoteLabel.setColour(juce::Label::textColourId, juce::Colour(0xffcccccc));
             addAndMakeVisible(sdNoteLabel);
-            
-            setupNoteDropdown(sdNoteBox, 38); // Default D1
+
+            // Read current parameter value from session
+            int currentSDNote = static_cast<int>(*audioProcessor.parameters.getRawParameterValue("note_2_sd"));
+            setupNoteDropdown(sdNoteBox, currentSDNote);
             sdNoteBox.onChange = [this] {
                 int noteNum = sdNoteBox.getSelectedId() - 1;
-                SettingsManager::getInstance().setInt("defaultSDNote", noteNum);
+                // Update the current session's parameter
+                if (auto* param = audioProcessor.parameters.getParameter("note_2_sd")) {
+                    float normalized = noteNum / 127.0f;
+                    param->setValueNotifyingHost(normalized);
+                }
+                // If "Save as default" is checked, also save to global settings
+                if (saveAsDefaultBox.getToggleState()) {
+                    SettingsManager::getInstance().setInt(SettingsManager::Keys::defaultSDNote, noteNum);
+                }
             };
             addAndMakeVisible(sdNoteBox);
             
@@ -387,14 +407,48 @@ std::unique_ptr<juce::Component> VisageSettingsPanel::createGeneralTabContent()
             hhNoteLabel.setFont(juce::Font(12.0f));
             hhNoteLabel.setColour(juce::Label::textColourId, juce::Colour(0xffcccccc));
             addAndMakeVisible(hhNoteLabel);
-            
-            setupNoteDropdown(hhNoteBox, 42); // Default F#1
+
+            // Read current parameter value from session
+            int currentHHNote = static_cast<int>(*audioProcessor.parameters.getRawParameterValue("note_3_hh"));
+            setupNoteDropdown(hhNoteBox, currentHHNote);
             hhNoteBox.onChange = [this] {
                 int noteNum = hhNoteBox.getSelectedId() - 1;
-                SettingsManager::getInstance().setInt("defaultHHNote", noteNum);
+                // Update the current session's parameter
+                if (auto* param = audioProcessor.parameters.getParameter("note_3_hh")) {
+                    float normalized = noteNum / 127.0f;
+                    param->setValueNotifyingHost(normalized);
+                }
+                // If "Save as default" is checked, also save to global settings
+                if (saveAsDefaultBox.getToggleState()) {
+                    SettingsManager::getInstance().setInt(SettingsManager::Keys::defaultHHNote, noteNum);
+                }
             };
             addAndMakeVisible(hhNoteBox);
-            
+
+            // Save as default checkbox
+            saveAsDefaultBox.setButtonText("Save this MIDI note mapping as my default");
+            saveAsDefaultBox.setToggleState(
+                SettingsManager::getInstance().getBool(SettingsManager::Keys::useCustomMidiDefaults, false),
+                juce::dontSendNotification);
+            saveAsDefaultBox.setColour(juce::ToggleButton::textColourId, juce::Colour(0xffcccccc));
+            saveAsDefaultBox.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xffff8833));
+            saveAsDefaultBox.onClick = [this] {
+                bool useCustom = saveAsDefaultBox.getToggleState();
+                SettingsManager::getInstance().setBool(SettingsManager::Keys::useCustomMidiDefaults, useCustom);
+
+                if (useCustom) {
+                    // Save current values as global defaults
+                    int bdNote = static_cast<int>(*audioProcessor.parameters.getRawParameterValue("note_1_bd"));
+                    int sdNote = static_cast<int>(*audioProcessor.parameters.getRawParameterValue("note_2_sd"));
+                    int hhNote = static_cast<int>(*audioProcessor.parameters.getRawParameterValue("note_3_hh"));
+
+                    SettingsManager::getInstance().setInt(SettingsManager::Keys::defaultBDNote, bdNote);
+                    SettingsManager::getInstance().setInt(SettingsManager::Keys::defaultSDNote, sdNote);
+                    SettingsManager::getInstance().setInt(SettingsManager::Keys::defaultHHNote, hhNote);
+                }
+            };
+            addAndMakeVisible(saveAsDefaultBox);
+
             // Acknowledgements section
             acknowledgementsSectionLabel.setText("About", juce::dontSendNotification);
             acknowledgementsSectionLabel.setFont(juce::Font(14.0f, juce::Font::bold));
@@ -482,8 +536,12 @@ std::unique_ptr<juce::Component> VisageSettingsPanel::createGeneralTabContent()
             noteRow.removeFromLeft(20);
             hhNoteLabel.setBounds(noteRow.removeFromLeft(30));
             hhNoteBox.setBounds(noteRow.removeFromLeft(120));
+            bounds.removeFromTop(10);
+
+            // Save as default checkbox
+            saveAsDefaultBox.setBounds(bounds.removeFromTop(24));
             bounds.removeFromTop(20);
-            
+
             // Acknowledgements Section
             acknowledgementsSectionLabel.setBounds(bounds.removeFromTop(20));
             bounds.removeFromTop(10);
@@ -531,6 +589,7 @@ std::unique_ptr<juce::Component> VisageSettingsPanel::createGeneralTabContent()
         juce::ToggleButton retriggerButton;
         juce::ToggleButton midiThruBox;
         juce::ComboBox bdNoteBox, sdNoteBox, hhNoteBox;
+        juce::ToggleButton saveAsDefaultBox;
         juce::TextButton acknowledgementsButton;
     };
     

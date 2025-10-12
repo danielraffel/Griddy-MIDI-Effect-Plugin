@@ -143,6 +143,7 @@ public:
         static constexpr const char* defaultBDNote = "defaultBDNote";
         static constexpr const char* defaultSDNote = "defaultSDNote";
         static constexpr const char* defaultHHNote = "defaultHHNote";
+        static constexpr const char* useCustomMidiDefaults = "useCustomMidiDefaults";
         static constexpr const char* midiThruDefault = "midiThruDefault";
         static constexpr const char* liveModeDefault = "liveModeDefault";
         
@@ -209,6 +210,7 @@ private:
         settings->setProperty(Keys::defaultBDNote, 36);  // C1
         settings->setProperty(Keys::defaultSDNote, 38);  // D1
         settings->setProperty(Keys::defaultHHNote, 42);  // F#1
+        settings->setProperty(Keys::useCustomMidiDefaults, false);  // Use factory defaults by default
         settings->setProperty(Keys::midiThruDefault, true);
         settings->setProperty(Keys::liveModeDefault, false);
         
