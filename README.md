@@ -3,7 +3,8 @@
 A topographic drum sequencer MIDI effect inspired by Mutable Instruments Grids, built in C++ with JUCE and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
 [💾 Download macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/1.0.65/Griddy_1.0.65.pkg) • [All Releases](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases)
 
-<img width="630" height="573" alt="image" src="https://github.com/user-attachments/assets/dc2e8f45-2b1b-4c44-9771-f8c14caad771" />
+<img width="630" height="503" alt="image" src="https://github.com/user-attachments/assets/889a0d06-8cc9-4ff8-9acf-cd80bfef791d" />
+
 
 ## Overview
 
