@@ -6,6 +6,7 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum macOS version")
 # Get environment variables
 set(PROJECT_NAME $ENV{PROJECT_NAME})
 set(PROJECT_BUNDLE_ID $ENV{PROJECT_BUNDLE_ID})
+set(IOS_APP_BUNDLE_ID $ENV{IOS_APP_BUNDLE_ID})
 set(PLUGIN_CODE $ENV{PLUGIN_CODE})
 set(PLUGIN_MANUFACTURER_CODE $ENV{PLUGIN_MANUFACTURER_CODE})
 set(JUCE_REPO $ENV{JUCE_REPO})
@@ -18,6 +19,9 @@ if(NOT PROJECT_NAME)
 endif()
 if(NOT PROJECT_BUNDLE_ID)
     set(PROJECT_BUNDLE_ID "com.danielraffel.griddy")
+endif()
+if(NOT IOS_APP_BUNDLE_ID)
+    set(IOS_APP_BUNDLE_ID "${PROJECT_BUNDLE_ID}.app")
 endif()
 if(NOT PLUGIN_CODE)
     set(PLUGIN_CODE "GRDM")
@@ -248,7 +252,7 @@ set(GRIDDY_APP_SAMPLES
 if(IOS OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     juce_add_gui_app(GriddyApp
         COMPANY_NAME ${COMPANY_NAME}
-        BUNDLE_ID ${PROJECT_BUNDLE_ID}.app
+        BUNDLE_ID ${IOS_APP_BUNDLE_ID}
         PRODUCT_NAME "Griddy"
         VERSION ${PLUGIN_VERSION}
         ICON_BIG Resources/Images/app_icon_1024.png
@@ -337,6 +341,9 @@ if(IOS OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
         XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS "YES"
         XCODE_ATTRIBUTE_STRIP_INSTALLED_PRODUCT "NO"
         XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO"
+        # Let Xcode own archive output paths so app dSYMs are copied into .xcarchive/dSYMs.
+        XCODE_ATTRIBUTE_CONFIGURATION_BUILD_DIR "$(inherited)"
+        XCODE_ATTRIBUTE_DWARF_DSYM_FOLDER_PATH "$(inherited)"
     )
 
     # Default to danielraffel's team; override via -DDEVELOPMENT_TEAM=XXXX

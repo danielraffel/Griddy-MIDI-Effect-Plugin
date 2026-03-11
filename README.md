@@ -1,14 +1,18 @@
 # Griddy
 
-A topographic drum sequencer MIDI effect inspired by Mutable Instruments Grids, built in C++ with JUCE and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
-[💾 Download macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/1.0.65/Griddy_1.0.65.pkg) • [All Releases](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases)
+A topographic drum sequencer MIDI effect and iOS app inspired by Mutable Instruments Grids, built in C++ with JUCE 8.0.12 and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
+[💾 Download macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/1.0.65/Griddy_1.0.65.pkg) • [📱 Join iOS TestFlight](https://testflight.apple.com/join/WDEGs7dk) • [All Releases](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases)
 
+**macOS**
 <img width="630" height="503" alt="image" src="https://github.com/user-attachments/assets/889a0d06-8cc9-4ff8-9acf-cd80bfef791d" />
 
+**iOS**
+<!-- Replace this placeholder with an iOS app screenshot -->
+_Add iOS app screenshot here._
 
 ## Overview
 
-Griddy generates evolving drum patterns by interpolating across a 5x5 map of rhythm nodes. Drag the XY pad to move through the terrain, shape each voice with density and velocity controls, and animate the whole pattern with LFO routing, pattern resets, and transport-aware timing.
+Griddy generates evolving drum patterns by interpolating across a 5x5 map of rhythm nodes. Drag the XY pad to move through the terrain, shape each voice with density and velocity controls, and animate the whole pattern with LFO routing, pattern resets, and transport-aware timing. The macOS plugin, standalone app, and iOS app share the same Visage-based interface and core sequencing engine.
 
 Brief demo video:
 
@@ -22,8 +26,8 @@ Brief demo video:
 - **Chaos and Swing**: Add controlled randomness and timing feel
 - **Modulation Matrix**: Route built-in LFOs to XY, densities, swing, chaos, velocities, reset, and note mappings
 - **Pattern Utilities**: Reset modes, Euclidean mode, and pattern chaining
-- **Plugin Formats**: AU, VST3, and standalone macOS app
-- **iOS App**: Shared Visage-based UI with native multi-touch support from the forked renderer
+- **Plugin Formats**: macOS AUv2, VST3, and standalone app
+- **iOS App**: Standalone MIDI sequencer app with shared Visage UI, virtual MIDI output, and native multi-touch support from the forked renderer
 
 ## Requirements
 
@@ -31,6 +35,13 @@ Brief demo video:
 - Apple Silicon Mac for the current release builds
 - A DAW that supports AU or VST3 plugins
 - Xcode 15+ and CMake 3.24+ for local builds
+
+## Tech Stack
+
+- **JUCE 8.0.12** for plugin/app scaffolding, audio, MIDI, and platform integration
+- **Visage fork** for the shared GPU-accelerated UI across macOS and iOS
+- **iOS touch support** from the 7-commit touch-event work in [Visage PR #11](https://github.com/danielraffel/visage/pull/11)
+- **Metal-backed iOS renderer** as part of the ongoing Visage-on-iOS port used by this app
 
 ## Building from Source
 
@@ -49,7 +60,7 @@ cd Griddy-MIDI-Effect-Plugin
 cp .env.example .env
 ```
 
-3. Generate the Xcode project:
+3. Generate the macOS Xcode project:
 
 ```bash
 ./scripts/generate_and_open_xcode.sh
@@ -63,7 +74,13 @@ JUCE is downloaded automatically on first build. Visage is already vendored in t
 - **AU + VST3 + Standalone local build**: `./scripts/build.sh all local`
 - **Signed/notarized package**: `./scripts/build.sh all pkg`
 - **Publish release**: `./scripts/build.sh all publish`
-- **iOS project generation**: `cmake -B build-ios -G Xcode -DCMAKE_SYSTEM_NAME=iOS`
+- **iOS project generation**: `cmake --fresh -B build-ios -G Xcode -DCMAKE_SYSTEM_NAME=iOS`
+
+### Xcode Projects
+
+- **macOS plugin + standalone project**: `build/Griddy.xcodeproj`
+- **iOS app project**: `build-ios/Griddy.xcodeproj`
+- **iOS app scheme**: `GriddyApp`
 
 ### Installation
 
@@ -72,6 +89,14 @@ After local builds, the macOS targets land in:
 - **AU**: `~/Library/Audio/Plug-Ins/Components/Griddy.component`
 - **VST3**: `~/Library/Audio/Plug-Ins/VST3/Griddy.vst3`
 - **Standalone**: `build/Griddy_artefacts/Release/Standalone/Griddy.app`
+
+### iOS App Notes
+
+- The iOS target is a standalone app, not an AUv3 extension target
+- It works as a MIDI sequencer for other iOS music apps through the app's virtual MIDI output
+- The built-in sounds are mainly there for demonstration and quick testing
+- If you want to drive another iOS instrument app, enable **MIDI Only**
+- The iOS app is also a practical testbed for the iOS touch-event work and Metal port in the Visage fork
 
 ## Usage
 
