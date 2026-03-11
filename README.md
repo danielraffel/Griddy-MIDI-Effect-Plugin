@@ -4,11 +4,12 @@ A topographic drum sequencer MIDI effect and iOS app inspired by Mutable Instrum
 [💾 Download macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/1.0.65/Griddy_1.0.65.pkg) • [📱 Join iOS TestFlight](https://testflight.apple.com/join/WDEGs7dk) • [All Releases](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases)
 
 **macOS**
+
 <img width="630" height="503" alt="image" src="https://github.com/user-attachments/assets/889a0d06-8cc9-4ff8-9acf-cd80bfef791d" />
 
 **iOS**
-<!-- Replace this placeholder with an iOS app screenshot -->
-_Add iOS app screenshot here._
+
+<img src="https://github.com/user-attachments/assets/d58cb91c-81cb-4e7a-800f-ce5011597a31" width="250" />
 
 ## Overview
 
