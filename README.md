@@ -15,7 +15,7 @@ A topographic drum sequencer MIDI effect and iOS app inspired by Mutable Instrum
 
 Griddy generates evolving drum patterns by interpolating across a 5x5 map of rhythm nodes. Drag the XY pad to move through the terrain, shape each voice with density and velocity controls, and animate the whole pattern with LFO routing, pattern resets, and transport-aware timing. The macOS plugin, standalone app, and iOS app share the same Visage-based interface and core sequencing engine.
 
-Brief demo video:
+Brief demo video (pre-visage update):
 
 [![Watch the video](https://img.youtube.com/vi/6K_gBFbkRlU/0.jpg)](https://youtu.be/6K_gBFbkRlU)
 
