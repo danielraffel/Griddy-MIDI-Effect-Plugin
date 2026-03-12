@@ -4,10 +4,8 @@
 
 GriddyAudioProcessor::GriddyAudioProcessor()
      : AudioProcessor (BusesProperties()
-                      #if ! JucePlugin_IsMidiEffect
-                      .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+                      ),
        parameters(*this, nullptr, "GridsParameters", createParameterLayout())
 {
     // Initialize engine with parameter values
@@ -210,7 +208,8 @@ bool GriddyAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) c
 void GriddyAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                                          juce::MidiBuffer& midiMessages)
 {
-    juce::ignoreUnused (buffer);
+    // Clear audio output — this is a MIDI-only plugin with silent audio buses
+    buffer.clear();
 
 #ifdef ENABLE_MODULATION_MATRIX
     realtimeModulationPreviewGeneration_.fetch_add(1, std::memory_order_relaxed);
