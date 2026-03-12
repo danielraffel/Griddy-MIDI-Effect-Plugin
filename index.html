@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Griddy | Topographic Drum Sequencer</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header & Hero */
+        header {
+            text-align: center;
+            padding: 32px 20px 60px;
+        }
+
+        .hero-top-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .button-group-main {
+            align-items: stretch;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-corner {
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            margin-bottom: 0;
+        }
+
+        .btn-download {
+            min-width: 280px;
+            text-align: center;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            min-height: 82px;
+        }
+
+        .btn-download small {
+            font-size: 0.78rem;
+            font-weight: 500;
+            opacity: 0.88;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-color);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary-color);
+        }
+
+        .btn-github {
+            background-color: #0f172a;
+            color: white;
+            border: 1px solid #475569;
+        }
+
+        .btn-github:hover {
+            border-color: var(--primary-color);
+            background-color: #111827;
+        }
+
+        .btn-soon {
+            background-color: transparent;
+            cursor: not-allowed;
+            border-style: dashed;
+            color: var(--text-muted);
+            opacity: 0.95;
+        }
+
+        .btn-soon:hover {
+            border-color: var(--border-color);
+        }
+
+        /* Sections */
+        section {
+            padding: 60px 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .grid-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background-color: var(--surface-color);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-card h3 {
+            margin-bottom: 10px;
+            color: #818cf8;
+        }
+
+        /* Gallery */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .gallery-card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .gallery-media {
+            background: #0b0b0b;
+            aspect-ratio: 4 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .gallery-item {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: calc(var(--radius) - 4px);
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .gallery-card:hover .gallery-item {
+            transform: scale(1.02);
+            border-color: var(--primary-color);
+        }
+
+        .gallery-caption {
+            padding: 16px;
+            min-height: 146px;
+        }
+
+        .gallery-caption strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .gallery-caption p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            align-items: center;
+            justify-content: center;
+        }
+
+        #lightbox img {
+            max-width: 90%;
+            max-height: 90vh;
+            border-radius: var(--radius);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .lightbox-close, .lightbox-prev, .lightbox-next {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .lightbox-close:hover, .lightbox-prev:hover, .lightbox-next:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .lightbox-close { top: 20px; right: 20px; }
+        .lightbox-prev { left: 20px; }
+        .lightbox-next { right: 20px; }
+
+        /* Setup FAQ */
+        details {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        summary {
+            padding: 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::after {
+            content: '+';
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        details[open] summary::after {
+            content: '−';
+        }
+
+        .faq-content {
+            padding: 0 20px 20px;
+            color: var(--text-muted);
+        }
+
+        .faq-content img {
+            max-width: 100%;
+            border-radius: var(--radius);
+            margin-top: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        ol li {
+            margin-bottom: 8px;
+        }
+
+        ul li {
+            margin-bottom: 8px;
+        }
+
+        .faq-content a,
+        footer a {
+            color: #a5b4fc;
+        }
+
+        .faq-content a:hover,
+        footer a:hover {
+            color: #c4b5fd;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        @media (max-width: 640px) {
+            .hero-top-actions {
+                flex-direction: column;
+                align-items: stretch;
+                margin-bottom: 28px;
+            }
+
+            .btn-corner,
+            .btn-download {
+                width: 100%;
+            }
+
+            .gallery-caption {
+                min-height: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="container">
+        <div class="hero-top-actions">
+            <a href="https://testflight.apple.com/join/WDEGs7dk" class="btn btn-secondary btn-corner">📱 Join iOS TestFlight</a>
+            <a href="https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin" class="btn btn-github btn-corner" target="_blank" rel="noopener noreferrer">Source on Github</a>
+        </div>
+        <h1>Griddy</h1>
+        <p class="subtitle">A topographic drum sequencer MIDI effect and iOS app inspired by Mutable Instruments Grids.</p>
+        
+        <div class="button-group button-group-main">
+            <a href="https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.12/Griddy_1.0.12.pkg" class="btn btn-primary btn-download">
+                <span>Download Free for macOS (AU/VST)</span>
+                <small>Apple Silicon Only</small>
+            </a>
+            <a href="https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.12/Griddy_1.0.12_Setup.exe" class="btn btn-primary btn-download">
+                <span>Download Free for Windows (VST)</span>
+                <small>64-bit Only</small>
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- About Section -->
+        <section id="about">
+            <h2>Evolving Rhythms</h2>
+            <p>Griddy generates evolving drum patterns by interpolating across a 5x5 map of rhythm nodes. Instead of programming individual beats, you drag an XY pad to smoothly morph through different rhythmic terrains.</p>
+            <br>
+            <p>The sequencer controls three distinct drum voices: Bass Drum, Snare Drum, and Hi-Hat. By shaping the density and velocity of each voice, you can go from sparse, minimal patterns to dense, chaotic grooves instantly.</p>
+
+            <div class="grid-features">
+                <div class="feature-card">
+                    <h3>Deep Modulation</h3>
+                    <p>Route two built-in LFOs to animate the XY pad, density controls, swing, chaos, or velocities. Modulate your patterns for rhythms that never repeat.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Quantize & Reset</h3>
+                    <p>Keep things musical. You can quantize your modulations and reset the sequencer at specific bar intervals to ensure your chaotic beats always resolve on the one.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Full Automation</h3>
+                    <p>Every parameter is exposed to your DAW. Automate the XY pad as you record to capture unique organic performances, sweeps, and fills.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Custom MIDI</h3>
+                    <p>Don't like the default outputs? Griddy lets you fully customize the MIDI note mappings in the settings so it works perfectly with your favorite drum rack or hardware synth.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Chaos, Swing & Velocity</h3>
+                    <p>Shape the feel of every loop with controlled randomness, pocket, and accent. Dial in chaos for variation, swing for groove, and per-voice velocity for more expressive drum motion.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Euclidean Mode</h3>
+                    <p>Enable Euclidean mode for evenly distributed rhythmic pulses, then set independent BD, SD, and HH pattern lengths so each lane can cycle against the others in polyrhythmic ways.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Section -->
+        <section id="gallery">
+            <h2>Screenshots</h2>
+            <div class="gallery-grid">
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/plugin.png" alt="Griddy plugin interface inside a DAW" class="gallery-item" loading="lazy" onclick="openLightbox(0)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>The plugin</strong>
+                        <p>The main Griddy plugin view with the XY rhythm map, per-voice controls, and evolving pattern lanes.</p>
+                    </figcaption>
+                </figure>
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/1 settings-general.png" alt="Griddy settings general tab" class="gallery-item" loading="lazy" onclick="openLightbox(1)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>Settings: General</strong>
+                        <p>Choose reset behavior, toggle MIDI thru and live mode, and access acknowledgements from the general tab.</p>
+                    </figcaption>
+                </figure>
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/2 settings-advanced.png" alt="Griddy settings advanced tab" class="gallery-item" loading="lazy" onclick="openLightbox(2)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>Settings: Advanced</strong>
+                        <p>Set reset quantization and enable Euclidean mode with separate BD, SD, and HH pattern lengths.</p>
+                    </figcaption>
+                </figure>
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/3 settings-midi.png" alt="Griddy settings MIDI tab" class="gallery-item" loading="lazy" onclick="openLightbox(3)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>Settings: MIDI</strong>
+                        <p>Configure the output channel, remap drum note assignments, and use MIDI learn for reset control.</p>
+                    </figcaption>
+                </figure>
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/4 settings-modulation.png" alt="Griddy settings modulation tab" class="gallery-item" loading="lazy" onclick="openLightbox(4)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>Settings: Modulation</strong>
+                        <p>Route Griddy's LFOs to XY, density, swing, chaos, notes, reset, and velocity destinations.</p>
+                    </figcaption>
+                </figure>
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/ios-app.png" alt="Griddy iOS app on TestFlight" class="gallery-item" loading="lazy" onclick="openLightbox(5)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>iOS app on TestFlight</strong>
+                        <p>The iPhone version brings the core sequencing controls to a touch-first layout for mobile sketching and performance.</p>
+                    </figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <!-- Setup FAQ Section -->
+        <section id="setup">
+            <h2>Setup & FAQ</h2>
+            
+            <details>
+                <summary>How do I set up Griddy in Ableton Live?</summary>
+                <div class="faq-content">
+                    <p>Because Griddy is a MIDI generator (VST3/AU), you load it on one track and route its MIDI output to a drum instrument on a second track.</p>
+                    <ol>
+                        <li>Load <strong>Griddy</strong> on MIDI Track 1 from the Ableton browser under <strong>The Generous Corp &gt; Griddy</strong>, and set its Monitor to <strong>"In"</strong>.</li>
+                        <li>Load a Drum Rack (or any drum synth) on MIDI Track 2.</li>
+                        <li>On Track 2's routing section, set <strong>Input Type</strong> to <strong>"1-Griddy"</strong>.</li>
+                        <li>Set the <strong>Input Channel</strong> directly below it to <strong>"Griddy"</strong>.</li>
+                        <li>Set Track 2 Monitor to <strong>"In"</strong>.</li>
+                        <li>Press play in Ableton to start the transport and hear your beats!</li>
+                    </ol>
+                    <img src="https://github.com/user-attachments/assets/4b7e8e6d-7ec2-416b-8d15-4f412946df81" alt="Ableton Routing Setup">
+                </div>
+            </details>
+
+            <details>
+                <summary>How do I set up Griddy in Logic Pro?</summary>
+                <div class="faq-content">
+                    <p>Logic Pro natively supports Audio Unit (AU) MIDI FX plugins, which makes routing very easy and keeps everything on a single track.</p>
+                    <ol>
+                        <li>Create a new <strong>Software Instrument</strong> track.</li>
+                        <li>In the Inspector panel, click the <strong>Instrument</strong> slot and load your preferred drum synth (like Drum Machine Designer or Drum Kit Designer).</li>
+                        <li>Above the Instrument slot, click the <strong>MIDI FX</strong> slot.</li>
+                        <li>Navigate to <strong>Audio Units > The Generous Corp > Griddy</strong>.</li>
+                        <li>Press Play in Logic. Griddy syncs to your DAW's transport clock and will automatically begin triggering the drum instrument!</li>
+                    </ol>
+                </div>
+            </details>
+
+            <details>
+                <summary>What are the default MIDI notes?</summary>
+                <div class="faq-content">
+                    <p>By default, Griddy outputs the standard General MIDI drum map:</p>
+                    <ul>
+                        <li><strong>Bass Drum:</strong> C1 (MIDI Note 36)</li>
+                        <li><strong>Snare Drum:</strong> D1 (MIDI Note 38)</li>
+                        <li><strong>Hi-Hat:</strong> F#1 (MIDI Note 42)</li>
+                    </ul>
+                    <p><em>Note: You can easily change these assignments at any time by clicking the Settings icon inside the plugin.</em></p>
+                </div>
+            </details>
+
+            <details>
+                <summary>What was Griddy built with?</summary>
+                <div class="faq-content">
+                    <p>Griddy was built with the <a href="https://github.com/danielraffel/JUCE-Plugin-Starter" target="_blank" rel="noopener noreferrer">JUCE Plugin Starter</a>, the <a href="https://www.generouscorp.com/generous-corp-marketplace/plugins/juce-dev/" target="_blank" rel="noopener noreferrer">juce-dev plugin</a> for Claude Code, and a <a href="https://github.com/VitalAudio/visage" target="_blank" rel="noopener noreferrer">fork of Visage</a> with iOS touch event support.</p>
+                    <p>The source code for Griddy itself is available on <a href="https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
+                </div>
+            </details>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Built by <a href="https://www.generouscorp.com/projects.html" target="_blank" rel="noopener noreferrer">The Generous Corp</a>.</p>
+            <p style="font-size: 0.85rem; margin-top: 10px;">Inspired by <a href="https://pichenettes.github.io/mutable-instruments-documentation/modules/grids/" target="_blank" rel="noopener noreferrer">Mutable Instruments Grids</a> by Emilie Gillet.</p>
+        </div>
+    </footer>
+
+    <!-- Lightbox Element -->
+    <div id="lightbox">
+        <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+        <button class="lightbox-prev" onclick="changeImage(-1)">‹</button>
+        <img id="lightbox-img" src="" alt="Expanded Screenshot">
+        <button class="lightbox-next" onclick="changeImage(1)">›</button>
+    </div>
+
+    <!-- Lightbox Script -->
+    <script>
+        const galleryImages = Array.from(document.querySelectorAll('.gallery-item'));
+        let currentIndex = 0;
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+
+        function updateLightbox() {
+            lightboxImg.src = galleryImages[currentIndex].src;
+            lightboxImg.alt = galleryImages[currentIndex].alt;
+        }
+
+        function openLightbox(index) {
+            currentIndex = index;
+            updateLightbox();
+            lightbox.style.display = 'flex';
+        }
+
+        function closeLightbox() {
+            lightbox.style.display = 'none';
+        }
+
+        function changeImage(direction) {
+            currentIndex += direction;
+            if (currentIndex >= galleryImages.length) currentIndex = 0;
+            if (currentIndex < 0) currentIndex = galleryImages.length - 1;
+            updateLightbox();
+        }
+
+        // Close lightbox when clicking the background
+        lightbox.addEventListener('click', function(e) {
+            if (e.target === lightbox) {
+                closeLightbox();
+            }
+        });
+
+        // Add keyboard support for lightbox
+        document.addEventListener('keydown', function(e) {
+            if (lightbox.style.display === 'flex') {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowRight') changeImage(1);
+                if (e.key === 'ArrowLeft') changeImage(-1);
+            }
+        });
+    </script>
+</body>
+</html>
