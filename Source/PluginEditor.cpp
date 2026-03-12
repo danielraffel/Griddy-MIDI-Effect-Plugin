@@ -67,7 +67,10 @@ void GriddyAudioProcessorEditor::launchAcknowledgements() const {
         return;
     }
 
-    if (!juce::URL(licensesFile).launchInDefaultBrowser()) {
+    // startAsProcess opens local files with the system default handler,
+    // which works reliably on both macOS and Windows (unlike URL::launchInDefaultBrowser
+    // which can fail for local file:// URLs on Windows).
+    if (!licensesFile.startAsProcess()) {
         juce::NativeMessageBox::showMessageBoxAsync(
             juce::MessageBoxIconType::WarningIcon,
             "Acknowledgements",
