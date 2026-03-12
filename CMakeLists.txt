@@ -112,8 +112,11 @@ endif()
 # Determine plugin formats — AU is macOS-only
 if(APPLE)
     set(GRIDDY_FORMATS AU VST3 Standalone)
+    set(GRIDDY_COPY_AFTER_BUILD TRUE)
 else()
     set(GRIDDY_FORMATS VST3 Standalone)
+    # On Windows, copying to Program Files requires admin — let the installer handle it
+    set(GRIDDY_COPY_AFTER_BUILD FALSE)
 endif()
 
 # Create the plugin
@@ -126,7 +129,7 @@ juce_add_plugin(${PROJECT_NAME}
     IS_MIDI_EFFECT FALSE
     NEEDS_EDITOR TRUE
     EDITOR_WANTS_KEYBOARD_FOCUS TRUE
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    COPY_PLUGIN_AFTER_BUILD ${GRIDDY_COPY_AFTER_BUILD}
     PLUGIN_MANUFACTURER_CODE ${PLUGIN_MANUFACTURER_CODE}
     PLUGIN_CODE ${PLUGIN_CODE}
     FORMATS ${GRIDDY_FORMATS}
