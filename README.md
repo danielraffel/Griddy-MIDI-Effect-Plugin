@@ -1,7 +1,7 @@
 # Griddy
 
 A topographic drum sequencer MIDI effect and iOS app inspired by Mutable Instruments Grids, built in C++ with JUCE 8.0.12 and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
-[💾 Download macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/1.0.65/Griddy_1.0.65.pkg) • [📱 Join iOS TestFlight](https://testflight.apple.com/join/WDEGs7dk) • [All Releases](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases)
+[💾 Download macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.12/Griddy_1.0.12.pkg) • [📱 Join iOS TestFlight](https://testflight.apple.com/join/WDEGs7dk) • [All Releases](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases)
 
 **macOS**
 
