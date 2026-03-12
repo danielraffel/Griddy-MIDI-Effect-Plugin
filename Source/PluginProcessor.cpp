@@ -576,9 +576,10 @@ void GriddyAudioProcessor::updateTiming(const juce::AudioPlayHead::PositionInfo&
 void GriddyAudioProcessor::addMidiNote(juce::MidiBuffer& midiMessages, int sampleOffset,
                                        int noteNumber, bool noteOn, int velocity)
 {
+    int channel = juce::jlimit(1, 16, (int)midiChannel);
     juce::MidiMessage msg = noteOn
-        ? juce::MidiMessage::noteOn(midiChannel, noteNumber, (juce::uint8)velocity)
-        : juce::MidiMessage::noteOff(midiChannel, noteNumber);
+        ? juce::MidiMessage::noteOn(channel, noteNumber, (juce::uint8)velocity)
+        : juce::MidiMessage::noteOff(channel, noteNumber);
 
     midiMessages.addEvent(msg, sampleOffset);
 }
