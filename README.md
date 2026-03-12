@@ -120,7 +120,7 @@ The VST3 version works as a MIDI generator — load it on one track and route it
 4. Set Track 2 Monitor to "In"
 5. Press play
 
-For detailed setup instructions in other DAWs, see [docs/vst3-routing-guide.md](docs/vst3-routing-guide.md).
+<img width="846" height="475" alt="image" src="https://github.com/user-attachments/assets/4b7e8e6d-7ec2-416b-8d15-4f412946df81" />
 
 ### Default MIDI Mapping
 
