@@ -1,7 +1,12 @@
 # Griddy
 
-A topographic drum sequencer MIDI effect and iOS app inspired by Mutable Instruments Grids, built in C++ with JUCE 8.0.12 and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
-[💾 Download macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.12/Griddy_1.0.12.pkg) • [📱 Join iOS TestFlight](https://testflight.apple.com/join/WDEGs7dk) • [All Releases](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases)
+A topographic drum sequencer MIDI effect and iOS app inspired by [Mutable Instruments Grids](https://pichenettes.github.io/mutable-instruments-documentation/modules/grids/), built in C++ with JUCE 8.0.12 and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
+
+[💾 macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.12/Griddy_1.0.12.pkg)
+
+[🪟 Windows Installer (EXE)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.12/Griddy_1.0.12_Setup.exe)
+
+[📱 Join iOS TestFlight](https://testflight.apple.com/join/WDEGs7dk)
 
 **macOS**
 
@@ -10,6 +15,10 @@ A topographic drum sequencer MIDI effect and iOS app inspired by Mutable Instrum
 **iOS**
 
 <img src="https://github.com/user-attachments/assets/d58cb91c-81cb-4e7a-800f-ce5011597a31" width="250" />
+
+**Windows**
+
+<img width="580" height="361" alt="image" src="https://github.com/user-attachments/assets/47fc4aa3-7436-426e-bddb-c1eee48a79dc" />
 
 ## Overview
 
