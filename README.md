@@ -109,6 +109,19 @@ After local builds, the macOS targets land in:
 4. **Chaos / Swing**: Add instability or groove
 5. **Settings / Modulation**: Open the settings panel for MIDI mapping, LFO routing, reset behavior, and live mode
 
+### VST3 Routing (Ableton Live, FL Studio, Cubase, Bitwig)
+
+The VST3 version works as a MIDI generator — load it on one track and route its MIDI output to an instrument on another track.
+
+**Ableton Live quick setup:**
+1. Load Griddy on MIDI Track 1
+2. Load Drum Rack (or any instrument) on MIDI Track 2
+3. On Track 2, set **MIDI From** to "Track 1"
+4. Set Monitor to "In" on Track 2
+5. Press play
+
+For detailed setup instructions in other DAWs, see [docs/vst3-routing-guide.md](docs/vst3-routing-guide.md).
+
 ### Default MIDI Mapping
 
 - Bass Drum: MIDI Note C1 (36)
