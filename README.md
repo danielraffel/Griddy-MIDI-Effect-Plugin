@@ -1,4 +1,4 @@
-# Griddy
+# Griddy ([Learn More](https://www.generouscorp.com/Griddy-MIDI-Effect-Plugin/))
 
 A topographic drum sequencer MIDI effect and iOS app inspired by [Mutable Instruments Grids](https://pichenettes.github.io/mutable-instruments-documentation/modules/grids/), built in C++ with JUCE 8.0.12 and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
 
