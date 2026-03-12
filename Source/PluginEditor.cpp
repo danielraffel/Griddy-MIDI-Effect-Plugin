@@ -45,15 +45,16 @@ void GriddyAudioProcessorEditor::performDiscreteParameterChange(juce::RangedAudi
 }
 
 void GriddyAudioProcessorEditor::launchAcknowledgements() const {
-    auto cacheDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory)
-                        .getChildFile("Library/Caches/Griddy");
+    // Use platform-appropriate temp/cache directory
+    auto cacheDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                        .getChildFile("Griddy");
     auto licensesFile = cacheDir.getChildFile("Griddy_Licenses.html");
 
     if (!cacheDir.exists() && !cacheDir.createDirectory()) {
         juce::NativeMessageBox::showMessageBoxAsync(
             juce::MessageBoxIconType::WarningIcon,
             "Acknowledgements",
-            "Could not create ~/Library/Caches/Griddy for the licenses file.");
+            "Could not create cache directory for the licenses file.");
         return;
     }
 
@@ -62,7 +63,7 @@ void GriddyAudioProcessorEditor::launchAcknowledgements() const {
         juce::NativeMessageBox::showMessageBoxAsync(
             juce::MessageBoxIconType::WarningIcon,
             "Acknowledgements",
-            "Could not write the current licenses file to ~/Library/Caches/Griddy.");
+            "Could not write the licenses file to cache directory.");
         return;
     }
 

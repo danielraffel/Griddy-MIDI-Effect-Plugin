@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.17)
 
 # Set minimum macOS version before defining the project
-set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum macOS version")
+if(APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum macOS version")
+endif()
 
 # Get environment variables
 set(PROJECT_NAME $ENV{PROJECT_NAME})
@@ -66,7 +68,11 @@ include(FetchContent)
 # can be isolated from other concurrent JUCE projects on the same machine.
 set(JUCE_CACHE_BASE_DIR $ENV{JUCE_CACHE_BASE_DIR})
 if(NOT JUCE_CACHE_BASE_DIR)
-    set(JUCE_CACHE_BASE_DIR "$ENV{HOME}/.juce_cache")
+    if(WIN32)
+        file(TO_CMAKE_PATH "$ENV{USERPROFILE}/.juce_cache" JUCE_CACHE_BASE_DIR)
+    else()
+        set(JUCE_CACHE_BASE_DIR "$ENV{HOME}/.juce_cache")
+    endif()
 endif()
 set(FETCHCONTENT_BASE_DIR "${JUCE_CACHE_BASE_DIR}")
 
@@ -103,6 +109,13 @@ if(NOT AU_VERSION_INT)
     math(EXPR AU_VERSION_INT "(${VERSION_MAJOR} << 16) | (${VERSION_MINOR} << 8) | ${VERSION_PATCH}")
 endif()
 
+# Determine plugin formats — AU is macOS-only
+if(APPLE)
+    set(GRIDDY_FORMATS AU VST3 Standalone)
+else()
+    set(GRIDDY_FORMATS VST3 Standalone)
+endif()
+
 # Create the plugin
 juce_add_plugin(${PROJECT_NAME}
     COMPANY_NAME ${COMPANY_NAME}
@@ -116,7 +129,7 @@ juce_add_plugin(${PROJECT_NAME}
     COPY_PLUGIN_AFTER_BUILD TRUE
     PLUGIN_MANUFACTURER_CODE ${PLUGIN_MANUFACTURER_CODE}
     PLUGIN_CODE ${PLUGIN_CODE}
-    FORMATS AU VST3 Standalone
+    FORMATS ${GRIDDY_FORMATS}
     PRODUCT_NAME ${PROJECT_NAME}
     VERSION ${PLUGIN_VERSION}
     AU_MAIN_TYPE kAudioUnitType_MIDIProcessor
@@ -135,7 +148,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     Source/Visage/JuceVisageBridge.cpp
     Source/Visage/JuceVisageBridge.h
     Source/Visage/SettingsMenuHelper.h
-    Source/Visage/SettingsMenuHelper.mm
+    Source/Visage/SettingsMenuHelper.cpp
     Source/Grids/GridsEngine.cpp
     Source/Grids/GridsEngine.h
     Source/Grids/GridsPatternData.h
@@ -157,7 +170,26 @@ target_sources(${PROJECT_NAME} PRIVATE
     Source/PatternChain/PatternChain.h
 )
 
+# Objective-C++ sources — macOS only
+if(APPLE)
+    target_sources(${PROJECT_NAME} PRIVATE
+        Source/Visage/SettingsMenuHelper.mm
+    )
+endif()
+
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
+# MSVC-specific compile options
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        /bigobj
+        /W3
+    )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS
+        NOMINMAX
+    )
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Source
@@ -219,21 +251,25 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # PluginProcessor.cpp for accessing these paths.
 # ==============================================================================
 
-add_custom_command(TARGET ${PROJECT_NAME}_AU
-    POST_BUILD
-    COMMAND "${CMAKE_SOURCE_DIR}/scripts/post_build.sh" "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}_AU>"
-    COMMENT "Updating Info.plist version for ${PROJECT_NAME}_AU"
-    VERBATIM
-)
+# macOS post-build: update Info.plist versions and copy to system plugin dirs
+if(APPLE)
+    if(TARGET ${PROJECT_NAME}_AU)
+        add_custom_command(TARGET ${PROJECT_NAME}_AU
+            POST_BUILD
+            COMMAND "${CMAKE_SOURCE_DIR}/scripts/post_build.sh" "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}_AU>"
+            COMMENT "Updating Info.plist version for ${PROJECT_NAME}_AU"
+            VERBATIM
+        )
+    endif()
 
-# Add post-build for VST3 if it's being built
-if(TARGET ${PROJECT_NAME}_VST3)
-    add_custom_command(TARGET ${PROJECT_NAME}_VST3
-        POST_BUILD
-        COMMAND "${CMAKE_SOURCE_DIR}/scripts/post_build.sh" "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}_VST3>"
-        COMMENT "Updating Info.plist version for ${PROJECT_NAME}_VST3"
-        VERBATIM
-    )
+    if(TARGET ${PROJECT_NAME}_VST3)
+        add_custom_command(TARGET ${PROJECT_NAME}_VST3
+            POST_BUILD
+            COMMAND "${CMAKE_SOURCE_DIR}/scripts/post_build.sh" "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}_VST3>"
+            COMMENT "Updating Info.plist version for ${PROJECT_NAME}_VST3"
+            VERBATIM
+        )
+    endif()
 endif()
 
 endif() # NOT iOS
@@ -362,8 +398,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OBJCXX_STANDARD 17)
 set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
 
-# Fix code signing and language standard for the JUCE-generated VST3 helper (macOS only)
-if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+# Fix code signing and language standard for the JUCE-generated VST3 helper (macOS/Xcode only)
+if(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     foreach(vst3_helper_target IN ITEMS juce_vst3_helper ${PROJECT_NAME}_vst3_helper)
         if(TARGET ${vst3_helper_target})
             set_target_properties(${vst3_helper_target} PROPERTIES
