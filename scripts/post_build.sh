@@ -130,30 +130,30 @@ echo "🔍 Final Info.plist version strings:"
 echo "🔧 Post-build script finished."
 
 # --- Copy to System Plug-Ins Directory ---
-# The component_path variable already holds the path to the .component bundle in the build directory.
-# Example: /Users/danielraffel/Code/PlunderTube/build/PlunderTube_artefacts/Debug/AU/PlunderTube.component
-
-# Extract the component name (e.g., PlunderTube.component) from the component_path
 COMPONENT_NAME=$(basename "${component_path}")
 
-# Define the destination directory for AU plugins
-DEST_DIR="$HOME/Library/Audio/Plug-Ins/Components/"
+# Determine the correct destination based on plugin type
+if [[ "$COMPONENT_NAME" == *.component ]]; then
+    DEST_DIR="$HOME/Library/Audio/Plug-Ins/Components/"
+elif [[ "$COMPONENT_NAME" == *.vst3 ]]; then
+    DEST_DIR="$HOME/Library/Audio/Plug-Ins/VST3/"
+else
+    echo "ℹ️  Skipping copy for non-AU/VST3 target: ${COMPONENT_NAME}"
+    echo "🎉 All post-build operations complete."
+    exit 0
+fi
 
 echo "ℹ️  Attempting to copy ${COMPONENT_NAME} from ${component_path} to ${DEST_DIR}"
 
-# Ensure the destination directory exists
 mkdir -p "${DEST_DIR}"
 
-# Copy the entire .component bundle using rsync
-# rsync is generally good for this as it handles directory contents well and can be efficient.
-# The trailing slash on the source path is important for rsync to copy the *contents* of the source directory.
 if rsync -av --delete "${component_path}/" "${DEST_DIR}${COMPONENT_NAME}/"; then
     echo "✅ Successfully copied ${COMPONENT_NAME} to ${DEST_DIR}"
-    echo "🔔 For Logic Pro, you may need to open Plugin Manager and 'Reset & Rescan' ${PROJECT_NAME_FROM_CMAKE:-PlunderTube}."
+    if [[ "$COMPONENT_NAME" == *.component ]]; then
+        echo "🔔 For Logic Pro, you may need to open Plugin Manager and 'Reset & Rescan'."
+    fi
 else
     echo "❌ Error: Failed to copy ${COMPONENT_NAME} to ${DEST_DIR}. rsync exit code: $?"
-    # Decide if this should be a fatal error for the build
-    # exit 1 
 fi
 
 echo "🎉 All post-build operations complete."
