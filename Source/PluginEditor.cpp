@@ -107,6 +107,8 @@ GriddyAudioProcessorEditor::~GriddyAudioProcessorEditor() {
     resetButton_ = nullptr;
     settingsButton_ = nullptr;
     settingsPanel_ = nullptr;
+    euclideanOverlay_ = nullptr;
+    midiNoteDisplay_ = nullptr;
     bdVelKnob_ = nullptr;
     sdVelKnob_ = nullptr;
     hhVelKnob_ = nullptr;
@@ -184,6 +186,14 @@ void GriddyAudioProcessorEditor::layoutChildren() {
     // LED matrix at bottom (4px padding inside the 74px panel background)
     if (ledMatrix_)
         ledMatrix_->setBounds(14, 252, 552, 66);
+
+    // Euclidean overlay on top of XY pad (same bounds)
+    if (euclideanOverlay_)
+        euclideanOverlay_->setBounds(14, 14, 236, 222);
+
+    // MIDI note display — bottom-aligned with velocity knobs (y=178+50=228)
+    if (midiNoteDisplay_)
+        midiNoteDisplay_->setBounds(278, 158, 130, 70);
 
     // Settings button — with clear gap from HH slider
     if (settingsButton_)
@@ -362,6 +372,52 @@ void GriddyAudioProcessorEditor::createVisageUI() {
     hhVelKnob_->setValue(*processorRef.parameters.getRawParameterValue("velocity_3_hh"));
     bindContinuousParameter(hhVelKnob_, hhVelocityParam);
 
+    // Create Euclidean overlay (on top of XY pad)
+    auto euclideanOverlayOwned = std::make_unique<EuclideanOverlayFrame>();
+    euclideanOverlay_ = euclideanOverlayOwned.get();
+    // starts inactive (drawn but empty until Euclidean mode enabled)
+#ifdef ENABLE_EUCLIDEAN_MODE
+    euclideanOverlay_->setLengths(
+        processorRef.getGridsEngine().getEuclideanLength(0),
+        processorRef.getGridsEngine().getEuclideanLength(1),
+        processorRef.getGridsEngine().getEuclideanLength(2));
+    euclideanOverlay_->onLengthChange = [this](int instrument, int length) {
+        processorRef.getGridsEngine().setEuclideanLength(instrument, length);
+        if (settingsPanel_)
+            settingsPanel_->setEuclideanLength(instrument, length);
+    };
+#endif
+
+    // Create MIDI note display (hidden by default, toggled from Settings > MIDI)
+    auto midiNoteDisplayOwned = std::make_unique<MidiNoteDisplayFrame>();
+    midiNoteDisplay_ = midiNoteDisplayOwned.get();
+    midiNoteDisplay_->setNotes(
+        static_cast<int>(*processorRef.parameters.getRawParameterValue("note_1_bd")),
+        static_cast<int>(*processorRef.parameters.getRawParameterValue("note_2_sd")),
+        static_cast<int>(*processorRef.parameters.getRawParameterValue("note_3_hh")));
+    // Wire main-screen MIDI note stepper callbacks to processor params
+    auto* bdNoteParamForDisplay = processorRef.parameters.getParameter("note_1_bd");
+    auto* sdNoteParamForDisplay = processorRef.parameters.getParameter("note_2_sd");
+    auto* hhNoteParamForDisplay = processorRef.parameters.getParameter("note_3_hh");
+    midiNoteDisplay_->onBDNoteChange = [this, bdNoteParamForDisplay](int note) {
+        if (bdNoteParamForDisplay)
+            performDiscreteParameterChange(bdNoteParamForDisplay,
+                bdNoteParamForDisplay->getNormalisableRange().convertTo0to1(static_cast<float>(note)));
+        if (settingsPanel_) settingsPanel_->setBDNote(note);
+    };
+    midiNoteDisplay_->onSDNoteChange = [this, sdNoteParamForDisplay](int note) {
+        if (sdNoteParamForDisplay)
+            performDiscreteParameterChange(sdNoteParamForDisplay,
+                sdNoteParamForDisplay->getNormalisableRange().convertTo0to1(static_cast<float>(note)));
+        if (settingsPanel_) settingsPanel_->setSDNote(note);
+    };
+    midiNoteDisplay_->onHHNoteChange = [this, hhNoteParamForDisplay](int note) {
+        if (hhNoteParamForDisplay)
+            performDiscreteParameterChange(hhNoteParamForDisplay,
+                hhNoteParamForDisplay->getNormalisableRange().convertTo0to1(static_cast<float>(note)));
+        if (settingsPanel_) settingsPanel_->setHHNote(note);
+    };
+
     // Create Settings button
     auto settingsOwned = std::make_unique<SettingsButtonFrame>();
     settingsButton_ = settingsOwned.get();
@@ -425,6 +481,9 @@ void GriddyAudioProcessorEditor::createVisageUI() {
                 resetModeParam,
                 resetModeParam->getNormalisableRange().convertTo0to1(static_cast<float>(mode)));
     };
+    settingsPanel_->onShowNotesOnMainChange = [this](bool show) {
+        if (midiNoteDisplay_) midiNoteDisplay_->setVisible(show);
+    };
     settingsPanel_->onOpenAcknowledgements = [this]() { launchAcknowledgements(); };
     settingsPanel_->onMidiLearnStart = [this]() {
         processorRef.startMidiLearnForReset();
@@ -472,6 +531,16 @@ void GriddyAudioProcessorEditor::createVisageUI() {
     };
 #endif
 
+#ifdef ENABLE_EUCLIDEAN_MODE
+    settingsPanel_->onEuclideanEnableChange = [this](bool enabled) {
+        DBG("Euclidean mode toggled: " + juce::String(enabled ? "ON" : "OFF"));
+        processorRef.getGridsEngine().setEuclideanEnabled(enabled);
+    };
+    settingsPanel_->onEuclideanLengthChange = [this](int instrument, int length) {
+        processorRef.getGridsEngine().setEuclideanLength(instrument, length);
+    };
+#endif
+
     // Wire settings button to toggle the panel
     settingsButton_->onPress = [this]() {
         if (settingsPanel_)
@@ -484,9 +553,11 @@ void GriddyAudioProcessorEditor::createVisageUI() {
 
     // Add children to root frame (settings panel last so it draws on top)
     rootFrame_->addChild(xyPadOwned.release());
+    rootFrame_->addChild(euclideanOverlayOwned.release()); // on top of XY pad
     rootFrame_->addChild(chaosOwned.release());
     rootFrame_->addChild(swingOwned.release());
     rootFrame_->addChild(resetOwned.release());
+    rootFrame_->addChild(midiNoteDisplayOwned.release());
     rootFrame_->addChild(bdOwned.release());
     rootFrame_->addChild(sdOwned.release());
     rootFrame_->addChild(hhOwned.release());
@@ -641,5 +712,43 @@ void GriddyAudioProcessorEditor::updateUIFromProcessor() {
         ledMatrix_->setVelocityRanges(bdVel, sdVel, hhVel);
         ledMatrix_->setPatterns(engine.getBDPattern(), engine.getSDPattern(), engine.getHHPattern());
         ledMatrix_->setCurrentStep(engine.getCurrentStep());
+#ifdef ENABLE_EUCLIDEAN_MODE
+        if (engine.getEuclideanEnabled()) {
+            auto& euc = engine.getEuclideanEngine();
+            ledMatrix_->setEuclideanMode(true,
+                euc.getStep(0), euc.getStep(1), euc.getStep(2),
+                euc.getLength(0), euc.getLength(1), euc.getLength(2));
+        } else {
+            ledMatrix_->setEuclideanMode(false, -1, -1, -1, 32, 32, 32);
+        }
+#endif
+    }
+
+    // Update Euclidean overlay and XY pad disabled state
+#ifdef ENABLE_EUCLIDEAN_MODE
+    {
+        bool eucEnabled = engine.getEuclideanEnabled();
+        if (xyPad_)
+            xyPad_->setDisabled(eucEnabled);
+        if (euclideanOverlay_) {
+            euclideanOverlay_->setActive(eucEnabled);
+            // Use Visage visibility to control event pass-through:
+            // when hidden, mouse events reach the XY pad underneath
+            euclideanOverlay_->Frame::setVisible(eucEnabled);
+            if (eucEnabled)
+                euclideanOverlay_->setLengths(
+                    engine.getEuclideanLength(0),
+                    engine.getEuclideanLength(1),
+                    engine.getEuclideanLength(2));
+        }
+    }
+#endif
+
+    // Update MIDI note display
+    if (midiNoteDisplay_) {
+        midiNoteDisplay_->setNotes(
+            static_cast<int>(*processorRef.parameters.getRawParameterValue("note_1_bd")),
+            static_cast<int>(*processorRef.parameters.getRawParameterValue("note_2_sd")),
+            static_cast<int>(*processorRef.parameters.getRawParameterValue("note_3_hh")));
     }
 }

@@ -1475,6 +1475,10 @@ main() {
             create_github_release
             enable_github_pages
             generate_and_publish_landing_page
+            # Update download links in README.md and gh-pages index.html
+            if [[ -x "${ROOT_DIR}/scripts/update_download_links.sh" ]]; then
+                "${ROOT_DIR}/scripts/update_download_links.sh" "$VERSION"
+            fi
             show_release_urls
             ;;
     esac

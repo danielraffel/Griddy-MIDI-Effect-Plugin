@@ -226,5 +226,19 @@ When you see the release notes prompt during `./scripts/build.sh publish`, immed
 - Fixed rare crash when changing plugin settings
 - Better audio quality with reduced distortion
 
+## Download Link Updates
+
+When publishing a release (`./scripts/build.sh publish`), download links are **automatically updated** via `scripts/update_download_links.sh`:
+
+- **README.md**: macOS PKG and Windows EXE links updated to the new version tag
+- **gh-pages index.html**: Same links updated and pushed to the `gh-pages` branch
+
+This runs automatically as part of the publish flow. No manual link updates needed.
+
+If you need to update links manually (e.g., after a hotfix re-release):
+```bash
+./scripts/update_download_links.sh 1.0.15
+```
+
 ## Additional Project Info
 See @README.md for general project information.

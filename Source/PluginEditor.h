@@ -9,6 +9,8 @@
 #include "UI/ResetButtonFrame.h"
 #include "UI/SettingsButtonFrame.h"
 #include "UI/SettingsPanelFrame.h"
+#include "UI/EuclideanOverlayFrame.h"
+#include "UI/MidiNoteDisplayFrame.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <visage_ui/frame.h>
 #include <unordered_set>
@@ -56,6 +58,8 @@ private:
     ResetButtonFrame* resetButton_ = nullptr;
     SettingsButtonFrame* settingsButton_ = nullptr;
     SettingsPanelFrame* settingsPanel_ = nullptr;
+    EuclideanOverlayFrame* euclideanOverlay_ = nullptr;
+    MidiNoteDisplayFrame* midiNoteDisplay_ = nullptr;
     RotaryKnobFrame* bdVelKnob_ = nullptr;
     RotaryKnobFrame* sdVelKnob_ = nullptr;
     RotaryKnobFrame* hhVelKnob_ = nullptr;

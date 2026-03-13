@@ -27,6 +27,8 @@ public:
     std::function<void()> onOpenAcknowledgements;
     std::function<void()> onMidiLearnStart;
     std::function<void()> onMidiLearnStop;
+    // Display toggles
+    std::function<void(bool)> onShowNotesOnMainChange;
     // Advanced tab
     std::function<void(int)> onResetQuantizeChange;
     std::function<void(bool)> onEuclideanEnableChange;
@@ -49,6 +51,8 @@ public:
     void setResetMode(int m) { resetMode_ = m; redraw(); }
     void setMidiLearnActive(bool v) { midiLearnActive_ = v; redraw(); }
     void setResetMidiCC(int cc) { resetMidiCC_ = cc; redraw(); }
+    void setShowNotesOnMain(bool v) { showNotesOnMain_ = v; redraw(); }
+    bool getShowNotesOnMain() const { return showNotesOnMain_; }
     void setResetQuantize(int q) { resetQuantize_ = q; redraw(); }
     void setEuclideanEnabled(bool v) { euclideanEnabled_ = v; redraw(); }
     void setEuclideanLength(int inst, int len) {
@@ -369,7 +373,33 @@ private:
         drawNumberValue(canvas, font, x, cy, w, rowH, "Channel", midiChannel_, 1, 16); cy += rowH + 8;
 
         canvas.setColor(0xffff8833);
-        canvas.text("Note Assignments", fontTitle, visage::Font::kLeft, x, cy, w, rowH); cy += rowH;
+        canvas.text("Note Assignments", fontTitle, visage::Font::kLeft, x, cy, w * 0.5f, rowH);
+        // Toggle with label right-adjacent to the switch
+        {
+            float toggleW = 36.0f, toggleH = 16.0f;
+            float toggleX = x + w - toggleW - 4;
+            float labelRightEdge = toggleX - 6.0f;
+            float labelStartX = labelRightEdge - 160.0f;
+            canvas.setColor(0xffaaaaaa);
+            canvas.text("Show and adjust on main screen", fontSmall, visage::Font::kRight, labelStartX, cy, labelRightEdge - labelStartX, rowH);
+            // Draw the toggle manually (same as drawToggle but with explicit position)
+            float ty = cy + (rowH - toggleH) / 2.0f;
+            bool hovered = isHoveredRect(toggleX, ty, toggleW, toggleH);
+            bool pressed = isPressedRect(toggleX, ty, toggleW, toggleH);
+            canvas.setColor(showNotesOnMain_
+                                ? (pressed ? 0xffffaa55 : (hovered ? 0xffff9944 : 0xffff8833))
+                                : (pressed ? 0xff5a5a5a : (hovered ? 0xff505050 : 0xff444444)));
+            canvas.roundedRectangle(toggleX, ty, toggleW, toggleH, toggleH / 2.0f);
+            if (hovered || pressed) {
+                canvas.setColor(pressed ? 0xffff8833 : 0xff888888);
+                canvas.roundedRectangleBorder(toggleX, ty, toggleW, toggleH, toggleH / 2.0f, 1.0f);
+            }
+            float thumbSize = toggleH - 4;
+            float thumbX = showNotesOnMain_ ? toggleX + toggleW - thumbSize - 2 : toggleX + 2;
+            canvas.setColor(pressed ? 0xfff5f5f5 : 0xffffffff);
+            canvas.circle(thumbX, ty + 2, thumbSize);
+        }
+        cy += rowH;
 
         drawNoteValue(canvas, font, x, cy, w, rowH, "BD Note", bdNote_); cy += rowH;
         drawNoteValue(canvas, font, x, cy, w, rowH, "SD Note", sdNote_); cy += rowH;
@@ -440,16 +470,26 @@ private:
     }
 
     void handleMidiClick(float mx, float my, float x, float y, float w, float rowH) {
-        float cy = y + rowH; // skip header
+        float cy = y + rowH; // skip MIDI Output header
         float btnSize = 20.0f, valueW = 40.0f;
         float rightX = x + w - btnSize * 2 - valueW - 4;
 
         handleNumberClick(mx, my, cy, rowH, rightX, btnSize, valueW, midiChannel_, 1, 16, onMidiChannelChange);
-        cy += rowH + 8 + rowH; // gap + Note header
+        cy += rowH + 8; // gap before Note Assignments row
+
+        // "Show and adjust on main screen" toggle on Note Assignments header row
+        if (my >= cy && my < cy + rowH && mx >= x + w - 40) {
+            showNotesOnMain_ = !showNotesOnMain_;
+            if (onShowNotesOnMainChange) onShowNotesOnMainChange(showNotesOnMain_);
+            redraw(); return;
+        }
+        cy += rowH; // past the header
 
         handleNumberClick(mx, my, cy, rowH, rightX, btnSize, valueW, bdNote_, 0, 127, onBDNoteChange); cy += rowH;
         handleNumberClick(mx, my, cy, rowH, rightX, btnSize, valueW, sdNote_, 0, 127, onSDNoteChange); cy += rowH;
-        handleNumberClick(mx, my, cy, rowH, rightX, btnSize, valueW, hhNote_, 0, 127, onHHNoteChange); cy += rowH + 8 + rowH;
+        handleNumberClick(mx, my, cy, rowH, rightX, btnSize, valueW, hhNote_, 0, 127, onHHNoteChange); cy += rowH + 8;
+
+        cy += rowH; // skip MIDI Learn header
 
         // MIDI Learn button
         if (my >= cy && my < cy + rowH) {
@@ -792,6 +832,7 @@ private:
     bool midiLearnActive_ = false;
     int resetMidiCC_ = -1;
     int resetQuantize_ = 0;
+    bool showNotesOnMain_ = false;
     bool euclideanEnabled_ = false;
     int euclideanLengths_[3] = { 16, 12, 8 };
     bool lfoEnabled_[2] = { false, false };

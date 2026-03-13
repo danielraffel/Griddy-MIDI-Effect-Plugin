@@ -11,6 +11,10 @@ class XYPadFrame : public visage::Frame {
 public:
     XYPadFrame() : Frame("XYPad") {}
 
+    // Disabled state (for Euclidean mode)
+    void setDisabled(bool d) { if (disabled_ != d) { disabled_ = d; redraw(); } }
+    bool isDisabled() const { return disabled_; }
+
     // Current X/Y values (0.0 to 1.0)
     float getX() const { return xValue_; }
     float getY() const { return yValue_; }
@@ -68,46 +72,50 @@ public:
         float thumbX = ax + xValue_ * aw;
         float thumbY = ay + (1.0f - yValue_) * ah;
 
-        // Crosshair lines (brighter when dragging)
-        canvas.setColor(dragging_ ? 0x60ff8833 : 0x30ffffff);
-        canvas.segment(thumbX, ay, thumbX, ay + ah, 0.5f, false);
-        canvas.segment(ax, thumbY, ax + aw, thumbY, 0.5f, false);
+        if (!disabled_) {
+            // Crosshair lines (brighter when dragging)
+            canvas.setColor(dragging_ ? 0x60ff8833 : 0x30ffffff);
+            canvas.segment(thumbX, ay, thumbX, ay + ah, 0.5f, false);
+            canvas.segment(ax, thumbY, ax + aw, thumbY, 0.5f, false);
 
-        float thumbR = 10.0f;
+            float thumbR = 10.0f;
 
-        // Outer glow when dragging (GPU-rendered radial effect)
-        if (dragging_) {
-            canvas.setColor(0x20ff8833);
-            canvas.circle(thumbX - thumbR * 2.5f, thumbY - thumbR * 2.5f, thumbR * 5);
-            canvas.setColor(0x30ff8833);
-            canvas.circle(thumbX - thumbR * 1.5f, thumbY - thumbR * 1.5f, thumbR * 3);
+            // Outer glow when dragging (GPU-rendered radial effect)
+            if (dragging_) {
+                canvas.setColor(0x20ff8833);
+                canvas.circle(thumbX - thumbR * 2.5f, thumbY - thumbR * 2.5f, thumbR * 5);
+                canvas.setColor(0x30ff8833);
+                canvas.circle(thumbX - thumbR * 1.5f, thumbY - thumbR * 1.5f, thumbR * 3);
+            }
+
+            // Thumb shadow
+            canvas.setColor(0x80000000);
+            canvas.circle(thumbX - thumbR + 1, thumbY - thumbR + 2, thumbR * 2);
+
+            // Thumb (orange, brighter when dragging)
+            canvas.setColor(dragging_ ? 0xffffaa44 : 0xffff8833);
+            canvas.circle(thumbX - thumbR, thumbY - thumbR, thumbR * 2);
+
+            // Inner glow
+            canvas.setColor(0x40ffaa00);
+            canvas.circle(thumbX - thumbR + 2, thumbY - thumbR + 2, thumbR * 2 - 4);
+
+            // Thumb highlight
+            canvas.setColor(0x60ffffff);
+            canvas.circle(thumbX - thumbR * 0.5f, thumbY - thumbR * 0.6f, thumbR * 0.6f);
         }
 
-        // Thumb shadow
-        canvas.setColor(0x80000000);
-        canvas.circle(thumbX - thumbR + 1, thumbY - thumbR + 2, thumbR * 2);
-
-        // Thumb (orange, brighter when dragging)
-        canvas.setColor(dragging_ ? 0xffffaa44 : 0xffff8833);
-        canvas.circle(thumbX - thumbR, thumbY - thumbR, thumbR * 2);
-
-        // Inner glow
-        canvas.setColor(0x40ffaa00);
-        canvas.circle(thumbX - thumbR + 2, thumbY - thumbR + 2, thumbR * 2 - 4);
-
-        // Thumb highlight
-        canvas.setColor(0x60ffffff);
-        canvas.circle(thumbX - thumbR * 0.5f, thumbY - thumbR * 0.6f, thumbR * 0.6f);
-
-        // Axis labels
+        // Axis labels (hidden when disabled — overlay replaces them)
+        if (!disabled_) {
         visage::Font font(9.0f, visage::fonts::Lato_Regular_ttf);
         canvas.setColor(0x60ffffff);
         canvas.text("X", font, visage::Font::kCenter, w - pad + 2, h / 2 - 6, pad - 2, 12);
         canvas.text("Y", font, visage::Font::kCenter, w / 2 - 6, 1, 12, pad - 2);
+        }
     }
 
     void mouseDown(const visage::MouseEvent& e) override {
-        if (dragging_)
+        if (disabled_ || dragging_)
             return;
         dragging_ = true;
         if (onGestureStart)
@@ -116,7 +124,7 @@ public:
     }
 
     void mouseUp(const visage::MouseEvent&) override {
-        if (!dragging_)
+        if (disabled_ || !dragging_)
             return;
         dragging_ = false;
         if (onGestureEnd)
@@ -125,6 +133,7 @@ public:
     }
 
     void mouseDrag(const visage::MouseEvent& e) override {
+        if (disabled_) return;
         updateFromMouse(e);
     }
 
@@ -151,4 +160,5 @@ private:
     float xValue_ = 0.5f;
     float yValue_ = 0.5f;
     bool dragging_ = false;
+    bool disabled_ = false;
 };

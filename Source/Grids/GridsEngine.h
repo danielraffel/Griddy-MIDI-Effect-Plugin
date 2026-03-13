@@ -4,6 +4,10 @@
 #include "GridsPatternData.h"
 #include <random>
 
+#ifdef ENABLE_EUCLIDEAN_MODE
+#include "EuclideanEngine.h"
+#endif
+
 class GridsEngine {
 public:
     GridsEngine();
@@ -56,6 +60,15 @@ public:
     std::array<uint8_t, 32> getSDPattern() const;
     std::array<uint8_t, 32> getHHPattern() const;
     
+#ifdef ENABLE_EUCLIDEAN_MODE
+    // Euclidean mode
+    void setEuclideanEnabled(bool enabled) { euclideanEnabled_ = enabled; }
+    bool getEuclideanEnabled() const { return euclideanEnabled_; }
+    void setEuclideanLength(int instrument, int length) { euclideanEngine_.setLength(instrument, static_cast<uint8_t>(length)); }
+    int getEuclideanLength(int instrument) const { return euclideanEngine_.getLength(instrument); }
+    EuclideanEngine& getEuclideanEngine() { return euclideanEngine_; }
+#endif
+
     // Evaluate drums for current step (public for retrigger mode)
     void evaluateDrums();
     
@@ -68,6 +81,11 @@ private:
     
     // Apply chaos/randomness
     bool applyChaos(bool trigger);
+
+#ifdef ENABLE_EUCLIDEAN_MODE
+    // Get Euclidean pattern for visualization
+    std::array<uint8_t, 32> getEuclideanPattern(int instrument, float density) const;
+#endif
     
     // Pattern position (0.0 to 1.0)
     float x_ = 0.5f;
@@ -101,4 +119,9 @@ private:
     // Random number generator
     std::mt19937 rng_;
     std::uniform_real_distribution<float> randomDist_{0.0f, 1.0f};
+
+#ifdef ENABLE_EUCLIDEAN_MODE
+    EuclideanEngine euclideanEngine_;
+    bool euclideanEnabled_ = false;
+#endif
 };

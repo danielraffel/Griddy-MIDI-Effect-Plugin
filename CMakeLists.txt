@@ -165,6 +165,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     Source/UI/ResetButtonFrame.h
     Source/UI/SettingsButtonFrame.h
     Source/UI/SettingsPanelFrame.h
+    Source/UI/EuclideanOverlayFrame.h
+    Source/UI/MidiNoteDisplayFrame.h
     Source/UI/TransportButtonFrame.h
     Source/UI/TempoFrame.h
     Source/UI/ToggleFrame.h
