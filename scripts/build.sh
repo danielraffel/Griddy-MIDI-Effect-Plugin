@@ -531,6 +531,26 @@ notarize_plugins() {
                     echo -e "${YELLOW}Warning: VST3 plugin not found at $plugin${NC}"
                 fi
                 ;;
+            Standalone)
+                # Notarize only the current project's standalone app
+                local app="$BUILD_DIR/${PROJECT_NAME}_artefacts/$CMAKE_BUILD_TYPE/Standalone/${PROJECT_NAME}.app"
+                if [[ -d "$app" ]]; then
+                    echo "Notarizing Standalone: ${PROJECT_NAME}..."
+                    local zip_path="/tmp/${PROJECT_NAME}_Standalone.zip"
+                    ditto -c -k --keepParent "$app" "$zip_path"
+
+                    xcrun notarytool submit "$zip_path" \
+                        --apple-id "$APPLE_ID" \
+                        --password "$NOTARY_PASSWORD" \
+                        --team-id "$TEAM_ID" \
+                        --wait
+
+                    xcrun stapler staple "$app"
+                    rm "$zip_path"
+                else
+                    echo -e "${YELLOW}Warning: Standalone app not found at $app${NC}"
+                fi
+                ;;
         esac
     done
 }
