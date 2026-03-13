@@ -507,6 +507,7 @@ void GriddyAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                 bool prevHH = gridsEngine.getHHTrigger();
 
                 gridsEngine.setCurrentStep(targetStep);
+                gridsEngine.syncEuclideanSteps(targetStep);
                 gridsEngine.evaluateDrums();
                 currentPatternStep = targetStep;
 

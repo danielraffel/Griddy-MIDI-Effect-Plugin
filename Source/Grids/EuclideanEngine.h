@@ -70,6 +70,12 @@ public:
         if (instrument < 0 || instrument >= 3) return 0;
         return step_[instrument];
     }
+
+    // Set step position for an instrument (for PPQ sync)
+    void setStep(int instrument, uint8_t step) {
+        if (instrument < 0 || instrument >= 3) return;
+        step_[instrument] = step % length_[instrument];
+    }
     
     // Load default lengths from global settings
     void loadDefaults() {

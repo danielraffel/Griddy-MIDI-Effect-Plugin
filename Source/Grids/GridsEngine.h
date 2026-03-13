@@ -41,6 +41,18 @@ public:
     
     // Set the current step directly (for PPQ sync)
     void setCurrentStep(int step) { currentStep_ = step % 32; }
+
+    // Sync Euclidean per-voice steps from global step (for PPQ sync)
+    void syncEuclideanSteps(int globalStep) {
+#ifdef ENABLE_EUCLIDEAN_MODE
+        if (euclideanEnabled_) {
+            for (int i = 0; i < 3; ++i)
+                euclideanEngine_.setStep(i, static_cast<uint8_t>(globalStep));
+        }
+#else
+        juce::ignoreUnused(globalStep);
+#endif
+    }
     
     // Get current step triggers (after tick)
     bool getBDTrigger() const { return bdTrigger_; }
