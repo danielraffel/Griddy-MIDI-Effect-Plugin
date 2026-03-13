@@ -60,6 +60,10 @@ endif()
 set(PLUGIN_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 project(${PROJECT_NAME} VERSION ${PLUGIN_VERSION})
+if(APPLE)
+    enable_language(OBJC)
+    enable_language(OBJCXX)
+endif()
 
 # Fetch JUCE using FetchContent
 include(FetchContent)

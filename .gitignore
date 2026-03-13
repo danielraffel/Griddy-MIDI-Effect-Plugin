@@ -37,7 +37,7 @@
 IMPLEMENTATION_SUMMARY.md
 
 # Templates and prompts (starter kit artifacts)
-/templates/
+/templates/website.html.template
 /prompts/
 
 # DiagnosticKit and tools

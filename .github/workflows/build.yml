@@ -1,0 +1,666 @@
+name: Build & Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Platforms to build (comma-separated: macos,windows,linux or 'all')"
+        required: false
+        default: ""
+        type: string
+      mode:
+        description: "Build mode (draft = publish with draft release)"
+        type: choice
+        options:
+          - verify
+          - sign
+          - publish
+          - draft
+        default: verify
+      sign_macos:
+        description: "Sign macOS builds (sign/publish modes)"
+        type: boolean
+        default: true
+      sign_windows:
+        description: "Sign Windows builds (sign/publish modes)"
+        type: boolean
+        default: true
+      create_release:
+        description: "Create GitHub Release (publish mode)"
+        type: boolean
+        default: true
+  push:
+    branches: [main, "feature/**", "integrate/**"]
+  pull_request:
+  release:
+    types: [created]
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_TYPE: Release
+  BUILD_DIR: build
+  DISPLAY: :0
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+  SCCACHE_GHA_ENABLED: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ── Determine which platforms to build ──────────────────────────────
+  detect_platforms:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      mode: ${{ steps.set-mode.outputs.mode }}
+      draft_release: ${{ steps.set-mode.outputs.draft_release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine build mode
+        id: set-mode
+        run: |
+          # Release events always use publish mode
+          if [ "${{ github.event_name }}" = "release" ]; then
+            MODE="publish"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ github.event.inputs.mode }}"
+          else
+            MODE="verify"
+          fi
+
+          # "draft" mode is publish with a draft release — normalize for build/sign checks
+          DRAFT_RELEASE="false"
+          if [ "$MODE" = "draft" ]; then
+            DRAFT_RELEASE="true"
+            MODE="publish"
+          fi
+
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+          echo "draft_release=$DRAFT_RELEASE" >> $GITHUB_OUTPUT
+          echo "Build mode: $MODE (draft: $DRAFT_RELEASE)"
+
+      - name: Detect platforms
+        id: set-matrix
+        run: |
+          # Priority: workflow_dispatch input > CI_PLATFORMS from .env > auto-detect
+
+          # 1. Check workflow_dispatch input
+          INPUT_PLATFORMS="${{ github.event.inputs.platforms }}"
+
+          # 2. If no input, try CI_PLATFORMS from .env or .env.ci
+          ENV_FILE=".env"
+          [ ! -f "$ENV_FILE" ] && [ -f ".env.ci" ] && ENV_FILE=".env.ci"
+          if [ -z "$INPUT_PLATFORMS" ] && [ -f "$ENV_FILE" ]; then
+            INPUT_PLATFORMS=$(grep '^CI_PLATFORMS=' "$ENV_FILE" | sed 's/^CI_PLATFORMS=//' | sed 's/^["'\'']//' | sed 's/["'\'']*$//')
+          fi
+
+          # 3. If still empty or "all", auto-detect from project files
+          if [ -z "$INPUT_PLATFORMS" ] || [ "$INPUT_PLATFORMS" = "all" ]; then
+            PLATFORMS=""
+
+            # macOS: always supported (JUCE-Plugin-Starter is macOS-first)
+            PLATFORMS="macos"
+
+            # Windows: detect build.ps1 or MSVC blocks in CMakeLists.txt
+            if [ -f scripts/build.ps1 ] || grep -q 'if(MSVC\|if(WIN32' CMakeLists.txt 2>/dev/null; then
+              PLATFORMS="$PLATFORMS,windows"
+            fi
+
+            # Linux: detect UNIX blocks in CMakeLists.txt or Linux steps in workflow
+            if grep -q 'UNIX AND NOT APPLE' CMakeLists.txt 2>/dev/null; then
+              PLATFORMS="$PLATFORMS,linux"
+            fi
+
+            INPUT_PLATFORMS="$PLATFORMS"
+          fi
+
+          # Build the matrix JSON
+          MATRIX='{"include":['
+          FIRST=true
+
+          if echo "$INPUT_PLATFORMS" | grep -qi 'macos'; then
+            [ "$FIRST" = true ] || MATRIX="$MATRIX,"
+            MATRIX="$MATRIX"'{"name":"macOS","os":"macos-14","cmake-flags":"-G Ninja -DCMAKE_OSX_ARCHITECTURES=\"arm64;x86_64\""}'
+            FIRST=false
+          fi
+
+          if echo "$INPUT_PLATFORMS" | grep -qi 'windows'; then
+            [ "$FIRST" = true ] || MATRIX="$MATRIX,"
+            MATRIX="$MATRIX"'{"name":"Windows","os":"windows-latest","cmake-flags":"-G Ninja"}'
+            FIRST=false
+          fi
+
+          if echo "$INPUT_PLATFORMS" | grep -qi 'linux'; then
+            [ "$FIRST" = true ] || MATRIX="$MATRIX,"
+            MATRIX="$MATRIX"'{"name":"Linux","os":"ubuntu-22.04","cmake-flags":"-G Ninja"}'
+            FIRST=false
+          fi
+
+          MATRIX="$MATRIX]}"
+
+          echo "Detected platforms: $INPUT_PLATFORMS"
+          echo "Matrix: $MATRIX"
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
+  # ── Build, test, and optionally sign/publish ────────────────────────
+  build_and_test:
+    needs: detect_platforms
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect_platforms.outputs.matrix) }}
+
+    steps:
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up Clang (Linux)
+        if: runner.os == 'Linux'
+        uses: egor-tensin/setup-clang@v1
+
+      - name: Install JUCE Linux Deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxinerama-dev libxext-dev libxrandr-dev libxcursor-dev libfreetype6-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev libcurl4-openssl-dev pkg-config ninja-build xvfb
+          sudo /usr/bin/Xvfb $DISPLAY &
+
+      - name: Install macOS Deps
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache build (sccache)
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Load .env
+        run: |
+          ENV_FILE=".env"
+          [ ! -f "$ENV_FILE" ] && [ -f ".env.ci" ] && ENV_FILE=".env.ci"
+          if [ -f "$ENV_FILE" ]; then
+            while IFS='=' read -r key value; do
+              [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+              value=$(echo "$value" | sed 's/^["'\'']//' | sed 's/["'\'']*$//')
+              echo "${key}=${value}" >> $GITHUB_ENV
+            done < "$ENV_FILE"
+          fi
+
+      # ── Signing status detection ──────────────────────────────────
+      - name: Determine signing status
+        id: signing
+        run: |
+          MODE="${{ needs.detect_platforms.outputs.mode }}"
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+
+          # macOS signing
+          SIGN_MACOS="false"
+          if [ "$MODE" != "verify" ] && \
+             [ -n "${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}" ] && \
+             [ "${{ github.event.inputs.sign_macos }}" != "false" ]; then
+            SIGN_MACOS="true"
+          fi
+          echo "sign_macos=$SIGN_MACOS" >> $GITHUB_OUTPUT
+
+          # Windows signing — supports PFX or Azure Trusted Signing
+          SIGN_WINDOWS="false"
+          if [ "$MODE" != "verify" ] && \
+             [ "${{ github.event.inputs.sign_windows }}" != "false" ]; then
+            if [ -n "${{ secrets.WINDOWS_CERT_PFX }}" ] || \
+               [ -n "${{ secrets.AZURE_CLIENT_ID }}" ]; then
+              SIGN_WINDOWS="true"
+            fi
+          fi
+          echo "sign_windows=$SIGN_WINDOWS" >> $GITHUB_OUTPUT
+
+          # Windows signing method
+          WIN_METHOD="none"
+          if [ "$SIGN_WINDOWS" = "true" ]; then
+            if [ -n "${{ secrets.AZURE_CLIENT_ID }}" ]; then
+              WIN_METHOD="azure"
+            else
+              WIN_METHOD="pfx"
+            fi
+          fi
+          echo "win_method=$WIN_METHOD" >> $GITHUB_OUTPUT
+
+          echo "Mode: $MODE | Sign macOS: $SIGN_MACOS | Sign Windows: $SIGN_WINDOWS ($WIN_METHOD)"
+
+      # ── macOS certificate import ──────────────────────────────────
+      - name: Import Apple Certificates
+        if: steps.signing.outputs.sign_macos == 'true' && runner.os == 'macOS'
+        env:
+          APP_CERT_P12: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
+          APP_CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
+          INSTALLER_CERT_P12: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_P12_BASE64 }}
+          INSTALLER_CERT_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo "$APP_CERT_P12" | base64 --decode > $RUNNER_TEMP/app_cert.p12
+          security import $RUNNER_TEMP/app_cert.p12 -P "$APP_CERT_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          if [ -n "$INSTALLER_CERT_P12" ]; then
+            echo "$INSTALLER_CERT_P12" | base64 --decode > $RUNNER_TEMP/installer_cert.p12
+            security import $RUNNER_TEMP/installer_cert.p12 -P "$INSTALLER_CERT_PASSWORD" \
+              -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+            rm -f $RUNNER_TEMP/installer_cert.p12
+          fi
+
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          rm -f $RUNNER_TEMP/app_cert.p12
+
+      # ── Windows PFX certificate import ────────────────────────────
+      - name: Import Windows Certificate (PFX)
+        if: steps.signing.outputs.sign_windows == 'true' && steps.signing.outputs.win_method == 'pfx' && runner.os == 'Windows'
+        shell: powershell
+        env:
+          WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $pfxBytes = [Convert]::FromBase64String($env:WINDOWS_CERT_PFX)
+          $pfxPath = "$env:RUNNER_TEMP\certificate.pfx"
+          [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          Import-PfxCertificate -FilePath $pfxPath `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -Password (ConvertTo-SecureString -String $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force)
+
+      # ── Build ─────────────────────────────────────────────────────
+      - name: Configure
+        run: |
+          cmake -B ${{ env.BUILD_DIR }} \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            ${{ matrix.cmake-flags }}
+
+      - name: Build
+        continue-on-error: true
+        run: cmake --build ${{ env.BUILD_DIR }} --config ${{ env.BUILD_TYPE }} --parallel 4 -- -k 0
+
+      # ── Test ──────────────────────────────────────────────────────
+      - name: Run Catch2 Tests
+        working-directory: ${{ env.BUILD_DIR }}
+        run: ctest --verbose --output-on-failure || true
+
+      - name: Download PluginVal
+        run: |
+          curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_${{ runner.os }}.zip" -o pluginval.zip
+          7z x pluginval.zip || unzip pluginval.zip || true
+
+      - name: Validate VST3 (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          PLUGIN="$HOME/Library/Audio/Plug-Ins/VST3/${{ env.PROJECT_NAME }}.vst3"
+          if [ -d "$PLUGIN" ]; then
+            pluginval.app/Contents/MacOS/pluginval --validate-in-process --strictness-level 5 --verbose --skip-gui-tests --output-dir "./pluginval-logs" --validate "$PLUGIN"
+          fi
+
+      - name: Validate VST3 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          PLUGIN="$HOME/.vst3/${{ env.PROJECT_NAME }}.vst3"
+          if [ -d "$PLUGIN" ]; then
+            ./pluginval --validate-in-process --strictness-level 5 --verbose --skip-gui-tests --output-dir "./pluginval-logs" --validate "$PLUGIN"
+          fi
+
+      - name: Validate VST3 (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 10
+        continue-on-error: true
+        shell: cmd
+        run: |
+          set PLUGIN=${{ env.BUILD_DIR }}\${{ env.PROJECT_NAME }}_artefacts\${{ env.BUILD_TYPE }}\VST3\${{ env.PROJECT_NAME }}.vst3
+          if exist "%PLUGIN%" (
+            pluginval.exe --validate-in-process --strictness-level 5 --verbose --skip-gui-tests --output-dir "./pluginval-logs" --validate "%PLUGIN%"
+          )
+
+      # ── macOS code signing ────────────────────────────────────────
+      - name: Sign macOS Binaries
+        if: steps.signing.outputs.sign_macos == 'true' && runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          echo "Signing macOS binaries..."
+          # Sign each plugin format that exists
+          for PLUGIN_PATH in \
+            "$HOME/Library/Audio/Plug-Ins/Components/${{ env.PROJECT_NAME }}.component" \
+            "$HOME/Library/Audio/Plug-Ins/VST3/${{ env.PROJECT_NAME }}.vst3" \
+            "$HOME/Library/Audio/Plug-Ins/CLAP/${{ env.PROJECT_NAME }}.clap" \
+            "${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}_artefacts/${{ env.BUILD_TYPE }}/Standalone/${{ env.PROJECT_NAME }}.app"; do
+            if [ -e "$PLUGIN_PATH" ]; then
+              codesign --force --deep --sign "${{ env.APP_CERT }}" \
+                --options runtime --timestamp "$PLUGIN_PATH"
+              echo "  Signed: $(basename "$PLUGIN_PATH")"
+            fi
+          done
+
+      # ── macOS: Package into .pkg installer ──────────────────────────
+      - name: Package & Notarize macOS Installer
+        if: steps.signing.outputs.mode == 'publish' && runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          VERSION="${VERSION_MAJOR:-0}.${VERSION_MINOR:-0}.${VERSION_PATCH:-0}"
+          PKG_DIR="$RUNNER_TEMP/pkg_staging"
+          mkdir -p "$PKG_DIR"
+
+          # Create component packages for each plugin format that exists
+          PKG_ARGS=""
+
+          AU_PATH="$HOME/Library/Audio/Plug-Ins/Components/${{ env.PROJECT_NAME }}.component"
+          if [ -d "$AU_PATH" ]; then
+            pkgbuild --component "$AU_PATH" \
+              --install-location "/Library/Audio/Plug-Ins/Components" \
+              --identifier "${{ env.PROJECT_BUNDLE_ID }}.au" \
+              "$PKG_DIR/au.pkg"
+            PKG_ARGS="$PKG_ARGS --package $PKG_DIR/au.pkg"
+            echo "  Component: AU"
+          fi
+
+          VST3_PATH="$HOME/Library/Audio/Plug-Ins/VST3/${{ env.PROJECT_NAME }}.vst3"
+          if [ -d "$VST3_PATH" ]; then
+            pkgbuild --component "$VST3_PATH" \
+              --install-location "/Library/Audio/Plug-Ins/VST3" \
+              --identifier "${{ env.PROJECT_BUNDLE_ID }}.vst3" \
+              "$PKG_DIR/vst3.pkg"
+            PKG_ARGS="$PKG_ARGS --package $PKG_DIR/vst3.pkg"
+            echo "  Component: VST3"
+          fi
+
+          CLAP_PATH="$HOME/Library/Audio/Plug-Ins/CLAP/${{ env.PROJECT_NAME }}.clap"
+          if [ -d "$CLAP_PATH" ]; then
+            pkgbuild --component "$CLAP_PATH" \
+              --install-location "/Library/Audio/Plug-Ins/CLAP" \
+              --identifier "${{ env.PROJECT_BUNDLE_ID }}.clap" \
+              "$PKG_DIR/clap.pkg"
+            PKG_ARGS="$PKG_ARGS --package $PKG_DIR/clap.pkg"
+            echo "  Component: CLAP"
+          fi
+
+          APP_PATH="${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}_artefacts/${{ env.BUILD_TYPE }}/Standalone/${{ env.PROJECT_NAME }}.app"
+          if [ -d "$APP_PATH" ]; then
+            pkgbuild --component "$APP_PATH" \
+              --install-location "/Applications" \
+              --identifier "${{ env.PROJECT_BUNDLE_ID }}.standalone" \
+              "$PKG_DIR/standalone.pkg"
+            PKG_ARGS="$PKG_ARGS --package $PKG_DIR/standalone.pkg"
+            echo "  Component: Standalone"
+          fi
+
+          if [ -z "$PKG_ARGS" ]; then
+            echo "::warning::No plugin components found for packaging"
+            exit 0
+          fi
+
+          # Create distribution XML and combined installer
+          eval "productbuild --synthesize $PKG_ARGS $PKG_DIR/distribution.xml"
+          eval "productbuild --distribution $PKG_DIR/distribution.xml \
+            --package-path $PKG_DIR \
+            $RUNNER_TEMP/unsigned.pkg"
+
+          # Sign the installer package (if installer cert available)
+          INSTALLER_PKG="${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}_${VERSION}.pkg"
+          SIGN_MACOS="${{ steps.signing.outputs.sign_macos }}"
+          if [ "$SIGN_MACOS" = "true" ] && [ -n "${{ env.INSTALLER_CERT }}" ]; then
+            productsign --sign "${{ env.INSTALLER_CERT }}" \
+              "$RUNNER_TEMP/unsigned.pkg" "$INSTALLER_PKG"
+            rm -f "$RUNNER_TEMP/unsigned.pkg"
+            echo "  Signed installer with: ${{ env.INSTALLER_CERT }}"
+          else
+            mv "$RUNNER_TEMP/unsigned.pkg" "$INSTALLER_PKG"
+          fi
+
+          # Notarize the .pkg (if signing is enabled)
+          if [ "$SIGN_MACOS" = "true" ] && [ -n "$APPLE_ID" ]; then
+            echo "  Notarizing $(basename "$INSTALLER_PKG")..."
+            xcrun notarytool submit "$INSTALLER_PKG" \
+              --apple-id "$APPLE_ID" \
+              --password "$APP_SPECIFIC_PASSWORD" \
+              --team-id "$TEAM_ID" \
+              --wait --timeout 15m
+
+            xcrun stapler staple "$INSTALLER_PKG"
+            echo "  Notarized and stapled"
+          fi
+
+          echo "INSTALLER_PKG=$INSTALLER_PKG" >> $GITHUB_ENV
+          echo "  Created: $(basename "$INSTALLER_PKG") ($(du -h "$INSTALLER_PKG" | cut -f1))"
+
+      # ── Windows code signing (PFX) ────────────────────────────────
+      - name: Sign Windows Binaries (PFX)
+        if: steps.signing.outputs.sign_windows == 'true' && steps.signing.outputs.win_method == 'pfx' && runner.os == 'Windows'
+        shell: powershell
+        env:
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $pfxPath = "$env:RUNNER_TEMP\certificate.pfx"
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -Recurse | Sort-Object -Descending | Select-Object -First 1
+
+          $artifacts = "${{ env.BUILD_DIR }}\${{ env.PROJECT_NAME }}_artefacts\${{ env.BUILD_TYPE }}"
+
+          # Sign VST3
+          $vst3 = Get-ChildItem "$artifacts" -Recurse -Filter "*.vst3" | Where-Object { $_.Extension -eq ".vst3" -and !$_.PSIsContainer } | Select-Object -First 1
+          if ($vst3) {
+            & $signtool sign /f $pfxPath /p $env:WINDOWS_CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 $vst3.FullName
+            Write-Host "  Signed: $($vst3.Name)"
+          }
+
+          # Sign Standalone
+          $exe = Get-ChildItem "$artifacts\Standalone" -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($exe) {
+            & $signtool sign /f $pfxPath /p $env:WINDOWS_CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 $exe.FullName
+            Write-Host "  Signed: $($exe.Name)"
+          }
+
+      # ── Windows code signing (Azure Trusted Signing) ──────────────
+      - name: Sign Windows Binaries (Azure)
+        if: steps.signing.outputs.sign_windows == 'true' && steps.signing.outputs.win_method == 'azure' && runner.os == 'Windows'
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: ${{ env.BUILD_DIR }}\${{ env.PROJECT_NAME }}_artefacts\${{ env.BUILD_TYPE }}
+          files-folder-filter: exe,dll,vst3
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      # ── Windows: Package installer (Inno Setup) ─────────────────────
+      - name: Package Windows Installer
+        if: steps.signing.outputs.mode == 'publish' && runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $version = "${{ env.VERSION_MAJOR }}.${{ env.VERSION_MINOR }}.${{ env.VERSION_PATCH }}"
+          $artifacts = Join-Path (Get-Location) "${{ env.BUILD_DIR }}\${{ env.PROJECT_NAME }}_artefacts\${{ env.BUILD_TYPE }}"
+
+          # Check if Inno Setup template exists
+          if (Test-Path "templates\installer.iss") {
+            # Use project-specific Inno Setup template
+            $issContent = Get-Content "templates\installer.iss" -Raw
+            $issContent = $issContent -replace '\{\{PROJECT_NAME\}\}', "${{ env.PROJECT_NAME }}"
+            $issContent = $issContent -replace '\{\{VERSION\}\}', $version
+            $issContent = $issContent -replace '\{\{ARTIFACTS\}\}', $artifacts
+            $issContent = $issContent -replace '\{\{COMPANY_NAME\}\}', "${{ env.DEVELOPER_NAME }}"
+            $issContent = $issContent -replace '\{\{PROJECT_BUNDLE_ID\}\}', "${{ env.PROJECT_BUNDLE_ID }}"
+            $issFile = "$env:RUNNER_TEMP\installer.iss"
+            $issContent | Out-File -FilePath $issFile -Encoding UTF8
+            & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" $issFile
+            # Find the generated Setup.exe (Inno outputs to Output/ relative to the .iss file)
+            $setupExe = Get-ChildItem -Path "$env:RUNNER_TEMP\Output" -Filter "*_Setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($setupExe) {
+              echo "INSTALLER_PKG=$($setupExe.FullName)" >> $env:GITHUB_ENV
+              Write-Host "  Created: $($setupExe.Name)"
+            }
+          } else {
+            # Simple zip fallback - create a zip of the build artifacts
+            $outDir = "${{ env.BUILD_DIR }}"
+            $zipName = "${{ env.PROJECT_NAME }}_${version}_Setup.zip"
+            Compress-Archive -Path "$artifacts\Standalone\*","$artifacts\VST3\*" `
+              -DestinationPath "$outDir\$zipName" -Force -ErrorAction SilentlyContinue
+            echo "INSTALLER_PKG=$outDir\$zipName" >> $env:GITHUB_ENV
+            Write-Host "  Created: $zipName (zip fallback - no Inno Setup template)"
+          }
+
+      # ── Linux: Package tar.gz archive ──────────────────────────────
+      - name: Package Linux Archive
+        if: steps.signing.outputs.mode == 'publish' && runner.os == 'Linux'
+        run: |
+          VERSION="${VERSION_MAJOR:-0}.${VERSION_MINOR:-0}.${VERSION_PATCH:-0}"
+          ARTIFACTS="${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}_artefacts/${{ env.BUILD_TYPE }}"
+          ARCHIVE="${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}_${VERSION}.tar.gz"
+
+          # Package VST3, CLAP, and Standalone into a tar.gz
+          PACK_DIRS=""
+          [ -d "$ARTIFACTS/VST3" ] && PACK_DIRS="$PACK_DIRS -C $ARTIFACTS VST3"
+          [ -d "$ARTIFACTS/CLAP" ] && PACK_DIRS="$PACK_DIRS -C $ARTIFACTS CLAP"
+          [ -d "$ARTIFACTS/Standalone" ] && PACK_DIRS="$PACK_DIRS -C $ARTIFACTS Standalone"
+
+          if [ -n "$PACK_DIRS" ]; then
+            eval "tar czf $ARCHIVE $PACK_DIRS"
+            echo "INSTALLER_PKG=$ARCHIVE" >> $GITHUB_ENV
+            echo "  Created: $(basename "$ARCHIVE") ($(du -h "$ARCHIVE" | cut -f1))"
+          fi
+
+      # ── Artifacts ─────────────────────────────────────────────────
+      - name: Set artifact paths
+        run: |
+          ARTIFACTS=${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}_artefacts/${{ env.BUILD_TYPE }}
+          echo "ARTIFACTS_PATH=$ARTIFACTS" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=${{ env.PROJECT_NAME }}-${{ runner.os }}" >> $GITHUB_ENV
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACTS_PATH }}
+
+      - name: Upload Installer Package
+        if: steps.signing.outputs.mode == 'publish' && env.INSTALLER_PKG != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-installer-${{ runner.os }}
+          path: ${{ env.INSTALLER_PKG }}
+
+  # ── Create GitHub Release (publish mode only) ───────────────────────
+  create_release:
+    needs: [detect_platforms, build_and_test]
+    if: >
+      needs.detect_platforms.outputs.mode == 'publish' &&
+      (github.event.inputs.create_release != 'false')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load .env
+        run: |
+          ENV_FILE=".env"
+          [ ! -f "$ENV_FILE" ] && [ -f ".env.ci" ] && ENV_FILE=".env.ci"
+          if [ -f "$ENV_FILE" ]; then
+            while IFS='=' read -r key value; do
+              [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+              value=$(echo "$value" | sed 's/^["'\'']//' | sed 's/["'\'']*$//')
+              echo "${key}=${value}" >> $GITHUB_ENV
+            done < "$ENV_FILE"
+          fi
+
+      - name: Download installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-installer-*"
+          path: installers
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${VERSION_MAJOR:-0}.${VERSION_MINOR:-0}.${VERSION_PATCH:-0}"
+          TAG="v${VERSION}"
+
+          echo "Creating release ${TAG}..."
+
+          # Find all installer files (flatten nested dirs from download-artifact)
+          RELEASE_DIR="$RUNNER_TEMP/release_files"
+          mkdir -p "$RELEASE_DIR"
+          find installers -type f \( -name "*.pkg" -o -name "*.exe" -o -name "*.tar.gz" -o -name "*.zip" \) \
+            -exec cp {} "$RELEASE_DIR/" \;
+
+          echo "Files for release:"
+          ls -la "$RELEASE_DIR/" 2>/dev/null || echo "  (none found)"
+
+          # Draft flag (draft mode creates a draft release for review)
+          DRAFT_FLAG=""
+          if [ "${{ needs.detect_platforms.outputs.draft_release }}" = "true" ]; then
+            DRAFT_FLAG="--draft"
+            echo "Creating DRAFT release (review before publishing)..."
+          fi
+
+          # Create the release with installer files
+          if ls "$RELEASE_DIR"/* &>/dev/null; then
+            gh release create "$TAG" \
+              --title "${{ env.PRODUCT_NAME }} ${VERSION}" \
+              --generate-notes \
+              $DRAFT_FLAG \
+              "$RELEASE_DIR"/* 2>/dev/null || \
+            gh release upload "$TAG" "$RELEASE_DIR"/* --clobber 2>/dev/null || true
+          else
+            # No installer files — create release without assets
+            gh release create "$TAG" \
+              --title "${{ env.PRODUCT_NAME }} ${VERSION}" \
+              --generate-notes \
+              $DRAFT_FLAG 2>/dev/null || true
+          fi
+
+          echo "Release ${TAG} created/updated"
+
+      # ── Update website download links ─────────────────────────────
+      - name: Update Website Download Links
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f scripts/update_download_links.sh ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            chmod +x scripts/update_download_links.sh
+            ./scripts/update_download_links.sh
+          fi
+
+      # ── Cleanup keychain (macOS) ──────────────────────────────────
+      - name: Cleanup
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/signing.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+          fi
+          rm -f "$RUNNER_TEMP/certificate.pfx" 2>/dev/null || true
