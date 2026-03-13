@@ -2,9 +2,9 @@
 
 A topographic drum sequencer MIDI effect and iOS app inspired by [Mutable Instruments Grids](https://pichenettes.github.io/mutable-instruments-documentation/modules/grids/), built in C++ with JUCE 8.0.12 and a GPU-accelerated [Visage](https://github.com/danielraffel/visage) fork.<br>
 
-[💾 macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.37/Griddy_1.0.37.pkg)
+[💾 macOS Installer (PKG)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.39/Griddy_1.0.39.pkg)
 
-[🪟 Windows Installer (EXE)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.37/Griddy_1.0.37_Setup.exe)
+[🪟 Windows Installer (EXE)](https://github.com/danielraffel/Griddy-MIDI-Effect-Plugin/releases/download/v1.0.39/Griddy_1.0.39_Setup.exe)
 
 [📱 Join iOS TestFlight](https://testflight.apple.com/join/WDEGs7dk)
 
