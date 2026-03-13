@@ -109,6 +109,7 @@ GriddyAudioProcessorEditor::~GriddyAudioProcessorEditor() {
     settingsPanel_ = nullptr;
     euclideanOverlay_ = nullptr;
     midiNoteDisplay_ = nullptr;
+    resetQuantizeDisplay_ = nullptr;
     bdVelKnob_ = nullptr;
     sdVelKnob_ = nullptr;
     hhVelKnob_ = nullptr;
@@ -163,9 +164,9 @@ void GriddyAudioProcessorEditor::layoutChildren() {
     if (swingKnob_)
         swingKnob_->setBounds(354, 14, 68, 68);
 
-    // Reset button — centered below chaos/swing, 3/4 their size
+    // Reset button — centered under Chaos, vertically centered in empty zone
     if (resetButton_)
-        resetButton_->setBounds(332, 90, 34, 34);
+        resetButton_->setBounds(295, 115, 30, 30);
 
     // Density sliders (shifted left for settings button breathing room)
     if (bdDensity_)
@@ -175,13 +176,13 @@ void GriddyAudioProcessorEditor::layoutChildren() {
     if (hhDensity_)
         hhDensity_->setBounds(506, 14, 30, 148);
 
-    // Velocity knobs below density sliders
+    // Velocity knobs — bottom-aligned with MIDI notes (bottom = 232)
     if (bdVelKnob_)
-        bdVelKnob_->setBounds(434, 178, 38, 50);
+        bdVelKnob_->setBounds(434, 182, 38, 50);
     if (sdVelKnob_)
-        sdVelKnob_->setBounds(468, 178, 38, 50);
+        sdVelKnob_->setBounds(468, 182, 38, 50);
     if (hhVelKnob_)
-        hhVelKnob_->setBounds(502, 178, 38, 50);
+        hhVelKnob_->setBounds(502, 182, 38, 50);
 
     // LED matrix at bottom (4px padding inside the 74px panel background)
     if (ledMatrix_)
@@ -191,9 +192,13 @@ void GriddyAudioProcessorEditor::layoutChildren() {
     if (euclideanOverlay_)
         euclideanOverlay_->setBounds(14, 14, 236, 222);
 
-    // MIDI note display — bottom-aligned with velocity knobs (y=178+50=228)
+    // MIDI note display — left-aligned with Chaos knob inner edge
     if (midiNoteDisplay_)
-        midiNoteDisplay_->setBounds(278, 158, 130, 70);
+        midiNoteDisplay_->setBounds(286, 164, 90, 68);
+
+    // Reset quantize display — centered under Swing knob (center=388)
+    if (resetQuantizeDisplay_)
+        resetQuantizeDisplay_->setBounds(354, 99, 68, 46);
 
     // Settings button — with clear gap from HH slider
     if (settingsButton_)
@@ -266,13 +271,13 @@ void GriddyAudioProcessorEditor::createVisageUI() {
         canvas.setColor(0xff333333);
         canvas.roundedRectangleBorder(264, 8, 308, 232, 8.0f, 1.0f);
 
-        // "Velocity" label above velocity knobs
+        // "Velocity" label above velocity knobs — aligned with "MIDI Notes" at y=164
         canvas.setColor(0xffaaaaaa);
         canvas.text("Velocity", labelFont, visage::Font::kCenter, 434, 164, 106, 14);
 
-        // "Reset" label below reset button
+        // "Reset" label above reset button (centered on button: btn x=295, w=30, center=310)
         canvas.setColor(0xffaaaaaa);
-        canvas.text("Reset", labelFont, visage::Font::kCenter, 316, 126, 66, 14);
+        canvas.text("Reset", labelFont, visage::Font::kCenter, 284, 99, 52, 14);
 
         // Background panel behind LED matrix (y=248, h=74, ends at 322, 8px from bottom)
         canvas.setColor(0xff2a2a2a);
@@ -418,6 +423,15 @@ void GriddyAudioProcessorEditor::createVisageUI() {
         if (settingsPanel_) settingsPanel_->setHHNote(note);
     };
 
+    // Create Reset Quantize display (hidden by default, toggled from Settings > Advanced)
+    auto resetQuantizeOwned = std::make_unique<ResetQuantizeDisplayFrame>();
+    resetQuantizeDisplay_ = resetQuantizeOwned.get();
+    resetQuantizeDisplay_->setQuantize(static_cast<int>(processorRef.getResetQuantize()));
+    resetQuantizeDisplay_->onQuantizeChange = [this](int q) {
+        processorRef.setResetQuantize(static_cast<QuantizeValue>(q));
+        if (settingsPanel_) settingsPanel_->setResetQuantize(q);
+    };
+
     // Create Settings button
     auto settingsOwned = std::make_unique<SettingsButtonFrame>();
     settingsButton_ = settingsOwned.get();
@@ -435,6 +449,15 @@ void GriddyAudioProcessorEditor::createVisageUI() {
     settingsPanel_->setMidiThru(*processorRef.parameters.getRawParameterValue("midi_thru") > 0.5f);
     settingsPanel_->setLiveMode(*processorRef.parameters.getRawParameterValue("live_mode") > 0.5f);
     settingsPanel_->setResetMode(static_cast<int>(*processorRef.parameters.getRawParameterValue("reset_mode")));
+    // Restore persisted UI toggle states
+    {
+        bool showNotes = processorRef.getShowNotesOnMain();
+        bool showQuantize = processorRef.getShowQuantizeOnMain();
+        settingsPanel_->setShowNotesOnMain(showNotes);
+        settingsPanel_->setShowQuantizeOnMain(showQuantize);
+        if (midiNoteDisplay_) midiNoteDisplay_->setVisible(showNotes);
+        if (resetQuantizeDisplay_) resetQuantizeDisplay_->setVisible(showQuantize);
+    }
     syncSettingsPanelFromProcessor();
 
     // Wire settings panel callbacks to processor parameters
@@ -483,6 +506,11 @@ void GriddyAudioProcessorEditor::createVisageUI() {
     };
     settingsPanel_->onShowNotesOnMainChange = [this](bool show) {
         if (midiNoteDisplay_) midiNoteDisplay_->setVisible(show);
+        processorRef.setShowNotesOnMain(show);
+    };
+    settingsPanel_->onShowQuantizeOnMainChange = [this](bool show) {
+        if (resetQuantizeDisplay_) resetQuantizeDisplay_->setVisible(show);
+        processorRef.setShowQuantizeOnMain(show);
     };
     settingsPanel_->onOpenAcknowledgements = [this]() { launchAcknowledgements(); };
     settingsPanel_->onMidiLearnStart = [this]() {
@@ -558,6 +586,7 @@ void GriddyAudioProcessorEditor::createVisageUI() {
     rootFrame_->addChild(swingOwned.release());
     rootFrame_->addChild(resetOwned.release());
     rootFrame_->addChild(midiNoteDisplayOwned.release());
+    rootFrame_->addChild(resetQuantizeOwned.release());
     rootFrame_->addChild(bdOwned.release());
     rootFrame_->addChild(sdOwned.release());
     rootFrame_->addChild(hhOwned.release());
@@ -743,6 +772,11 @@ void GriddyAudioProcessorEditor::updateUIFromProcessor() {
         }
     }
 #endif
+
+    // Update reset quantize display
+    if (resetQuantizeDisplay_) {
+        resetQuantizeDisplay_->setQuantize(static_cast<int>(processorRef.getResetQuantize()));
+    }
 
     // Update MIDI note display
     if (midiNoteDisplay_) {

@@ -29,6 +29,7 @@ public:
     std::function<void()> onMidiLearnStop;
     // Display toggles
     std::function<void(bool)> onShowNotesOnMainChange;
+    std::function<void(bool)> onShowQuantizeOnMainChange;
     // Advanced tab
     std::function<void(int)> onResetQuantizeChange;
     std::function<void(bool)> onEuclideanEnableChange;
@@ -53,6 +54,8 @@ public:
     void setResetMidiCC(int cc) { resetMidiCC_ = cc; redraw(); }
     void setShowNotesOnMain(bool v) { showNotesOnMain_ = v; redraw(); }
     bool getShowNotesOnMain() const { return showNotesOnMain_; }
+    void setShowQuantizeOnMain(bool v) { showQuantizeOnMain_ = v; redraw(); }
+    bool getShowQuantizeOnMain() const { return showQuantizeOnMain_; }
     void setResetQuantize(int q) { resetQuantize_ = q; redraw(); }
     void setEuclideanEnabled(bool v) { euclideanEnabled_ = v; redraw(); }
     void setEuclideanLength(int inst, int len) {
@@ -278,9 +281,33 @@ private:
                          const visage::Font& fontSmall, const visage::Font& fontTitle,
                          float x, float y, float w, float rowH) {
         float cy = y;
-        // Reset Quantization
+        // Reset Quantization header with "Show and adjust on main screen" toggle
         canvas.setColor(0xffff8833);
-        canvas.text("Reset Quantization", fontTitle, visage::Font::kLeft, x, cy, w, rowH); cy += rowH;
+        canvas.text("Reset Quantization", fontTitle, visage::Font::kLeft, x, cy, w * 0.5f, rowH);
+        {
+            float toggleW = 36.0f, toggleH = 16.0f;
+            float toggleX = x + w - toggleW - 4;
+            float labelRightEdge = toggleX - 6.0f;
+            float labelStartX = labelRightEdge - 160.0f;
+            canvas.setColor(0xffaaaaaa);
+            canvas.text("Show and adjust on main screen", fontSmall, visage::Font::kRight, labelStartX, cy, labelRightEdge - labelStartX, rowH);
+            float ty = cy + (rowH - toggleH) / 2.0f;
+            bool hovered = isHoveredRect(toggleX, ty, toggleW, toggleH);
+            bool pressed = isPressedRect(toggleX, ty, toggleW, toggleH);
+            canvas.setColor(showQuantizeOnMain_
+                                ? (pressed ? 0xffffaa55 : (hovered ? 0xffff9944 : 0xffff8833))
+                                : (pressed ? 0xff5a5a5a : (hovered ? 0xff505050 : 0xff444444)));
+            canvas.roundedRectangle(toggleX, ty, toggleW, toggleH, toggleH / 2.0f);
+            if (hovered || pressed) {
+                canvas.setColor(pressed ? 0xffff8833 : 0xff888888);
+                canvas.roundedRectangleBorder(toggleX, ty, toggleW, toggleH, toggleH / 2.0f, 1.0f);
+            }
+            float thumbSize = toggleH - 4;
+            float thumbX = showQuantizeOnMain_ ? toggleX + toggleW - thumbSize - 2 : toggleX + 2;
+            canvas.setColor(pressed ? 0xfff5f5f5 : 0xffffffff);
+            canvas.circle(thumbX, ty + 2, thumbSize);
+        }
+        cy += rowH;
 
         const char* quantNames[] = { "Off", "2 Bar", "1 Bar", "1/2", "1/4", "1/8", "1/16", "1/32", "1/4T", "1/8T", "1/16T" };
         float btnW = 42.0f, btnH = 20.0f, gap = 3.0f;
@@ -314,6 +341,12 @@ private:
     }
 
     void handleAdvancedClick(float mx, float my, float x, float y, float w, float rowH) {
+        // "Show and adjust on main screen" toggle on header row
+        if (my >= y && my < y + rowH && mx >= x + w - 40) {
+            showQuantizeOnMain_ = !showQuantizeOnMain_;
+            if (onShowQuantizeOnMainChange) onShowQuantizeOnMainChange(showQuantizeOnMain_);
+            redraw(); return;
+        }
         float cy = y + rowH; // skip header
         // Quantize buttons
         float btnW = 42.0f, btnH = 20.0f, gap = 3.0f;
@@ -833,6 +866,7 @@ private:
     int resetMidiCC_ = -1;
     int resetQuantize_ = 0;
     bool showNotesOnMain_ = false;
+    bool showQuantizeOnMain_ = false;
     bool euclideanEnabled_ = false;
     int euclideanLengths_[3] = { 16, 12, 8 };
     bool lfoEnabled_[2] = { false, false };

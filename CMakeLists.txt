@@ -135,6 +135,7 @@ juce_add_plugin(${PROJECT_NAME}
     FORMATS ${GRIDDY_FORMATS}
     PRODUCT_NAME ${PROJECT_NAME}
     VERSION ${PLUGIN_VERSION}
+    ICON_BIG Resources/Images/app_icon_1024.png
     AU_MAIN_TYPE kAudioUnitType_MIDIProcessor
     AU_EXPORT_PREFIX "GriddyAU"
     AU_SANDBOX_SAFE TRUE
@@ -167,6 +168,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     Source/UI/SettingsPanelFrame.h
     Source/UI/EuclideanOverlayFrame.h
     Source/UI/MidiNoteDisplayFrame.h
+    Source/UI/ResetQuantizeDisplayFrame.h
     Source/UI/TransportButtonFrame.h
     Source/UI/TempoFrame.h
     Source/UI/ToggleFrame.h

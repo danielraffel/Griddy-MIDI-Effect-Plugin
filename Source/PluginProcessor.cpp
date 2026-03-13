@@ -654,6 +654,11 @@ void GriddyAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     modulationMatrix.saveToValueTree(modTree);
 #endif
 
+    // Save UI toggle states
+    auto uiTree = state.getOrCreateChildWithName("UIToggles", nullptr);
+    uiTree.setProperty("showNotesOnMain", showNotesOnMain_, nullptr);
+    uiTree.setProperty("showQuantizeOnMain", showQuantizeOnMain_, nullptr);
+
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -674,6 +679,13 @@ void GriddyAudioProcessor::setStateInformation (const void* data, int sizeInByte
             if (modTree.isValid())
                 modulationMatrix.loadFromValueTree(modTree);
 #endif
+
+            // Restore UI toggle states
+            auto uiTree = newState.getChildWithName("UIToggles");
+            if (uiTree.isValid()) {
+                showNotesOnMain_ = static_cast<bool>(uiTree.getProperty("showNotesOnMain", false));
+                showQuantizeOnMain_ = static_cast<bool>(uiTree.getProperty("showQuantizeOnMain", false));
+            }
         }
     }
 }

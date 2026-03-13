@@ -42,7 +42,7 @@ public:
         unsigned int colors[] = { 0xffff4444, 0xff44ff44, 0xffffff44 };
         float rowH = (h - 16.0f) / 3.0f;
         float startY = 16.0f;
-        float labelW = 24.0f;
+        float labelW = 20.0f;
         float stepperW = w - labelW - 4.0f;
 
         for (int i = 0; i < 3; i++) {
@@ -68,10 +68,10 @@ public:
         float h = height();
         float rowH = (h - 16.0f) / 3.0f;
         float startY = 16.0f;
-        float labelW = 24.0f;
+        float labelW = 20.0f;
         float stepperW = width() - labelW - 4.0f;
         float stepperX = labelW + 4;
-        float chevW = 20.0f;
+        float chevW = 14.0f;
         float mx = e.position.x, my = e.position.y;
 
         for (int i = 0; i < 3; i++) {
@@ -148,7 +148,7 @@ private:
                             float x, float y, float w, float h,
                             const char* valueText, bool canDec, bool canInc) {
         float sH = h - 3.0f, sY = y + 1.5f;
-        float chevW = 20.0f;
+        float chevW = 14.0f;
 
         // Background pill
         canvas.setColor(0xff2a2a2a);
@@ -195,10 +195,10 @@ private:
         float h = height();
         float rowH = (h - 16.0f) / 3.0f;
         float startY = 16.0f;
-        float labelW = 24.0f;
+        float labelW = 20.0f;
         float stepperW = width() - labelW - 4.0f;
         float stepperX = labelW + 4;
-        float chevW = 20.0f;
+        float chevW = 14.0f;
         float vX = stepperX + chevW;
         float vW = stepperW - chevW * 2;
 

@@ -82,6 +82,12 @@ public:
     void setResetQuantize(QuantizeValue value) { resetQuantize = value; }
     QuantizeValue getResetQuantize() const { return resetQuantize; }
 
+    // UI toggle persistence (show/hide main screen widgets)
+    void setShowNotesOnMain(bool v) { showNotesOnMain_ = v; }
+    bool getShowNotesOnMain() const { return showNotesOnMain_; }
+    void setShowQuantizeOnMain(bool v) { showQuantizeOnMain_ = v; }
+    bool getShowQuantizeOnMain() const { return showQuantizeOnMain_; }
+
     // MIDI learn for reset
     void startMidiLearnForReset() { midiLearnActive = true; }
     void stopMidiLearn() { midiLearnActive = false; }
@@ -146,6 +152,10 @@ private:
     bool resetArmed = false;
     QuantizeValue resetQuantize = QUANTIZE_OFF;
     double quantizePhase = 0.0;
+
+    // UI toggle persistence
+    bool showNotesOnMain_ = false;
+    bool showQuantizeOnMain_ = false;
 
     // MIDI note numbers
     int bdNote = 36;
