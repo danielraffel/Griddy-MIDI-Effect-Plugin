@@ -169,7 +169,8 @@ For issues, questions, or suggestions, open an issue on GitHub or contact [thege
 
 - macOS AU/VST3/Standalone: ✅ Supported
 - iOS app target: ✅ Supported
-- Windows/Linux: not currently shipped
+- Windows VST/CLAP: ✅ Supported
+- Linux: not currently shipped
 
 ---
 
