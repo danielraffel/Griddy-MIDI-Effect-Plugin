@@ -230,12 +230,14 @@
             align-items: center;
             justify-content: center;
             padding: 12px;
+            overflow: hidden;
         }
 
         .gallery-item {
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
+            align-self: center;
             border-radius: calc(var(--radius) - 4px);
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.06);
@@ -510,7 +512,25 @@
                 </figure>
                 <figure class="gallery-card">
                     <div class="gallery-media">
-                        <img src="web-images/ios-app.png" alt="Griddy iOS app on TestFlight" class="gallery-item" loading="lazy" onclick="openLightbox(5)">
+                        <img src="web-images/5 euclidean-mode.png" alt="Griddy Euclidean mode with polyrhythmic pattern lengths" class="gallery-item" loading="lazy" onclick="openLightbox(5)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>Euclidean Mode</strong>
+                        <p>In Euclidean mode the XY pad is replaced with per-voice note-length controls, making it easy to configure polyrhythms with independent BD, SD, and HH cycle lengths.</p>
+                    </figcaption>
+                </figure>
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/6 show-quantize-notes.png" alt="Griddy main view with quantize reset and MIDI notes visible" class="gallery-item" loading="lazy" onclick="openLightbox(6)">
+                    </div>
+                    <figcaption class="gallery-caption">
+                        <strong>Quantize & Notes on Main Screen</strong>
+                        <p>Enable quantize-reset options and MIDI note selectors directly on the main screen in settings, so you can quickly adjust reset timing or change triggered sounds without leaving the main view.</p>
+                    </figcaption>
+                </figure>
+                <figure class="gallery-card">
+                    <div class="gallery-media">
+                        <img src="web-images/ios-app.png" alt="Griddy iOS app on TestFlight" class="gallery-item" loading="lazy" onclick="openLightbox(7)">
                     </div>
                     <figcaption class="gallery-caption">
                         <strong>iOS app on TestFlight</strong>
